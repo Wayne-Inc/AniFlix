@@ -1,0 +1,6 @@
+{
+  "name": "AniFlix - StreamFlix Anime & Manga",
+  "description": "StreamFlix-style anime and manga streaming platform querying TMDB for Japanese anime titles and curated manga.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
