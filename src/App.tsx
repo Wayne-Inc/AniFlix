@@ -17,6 +17,7 @@ import { DetailPage } from "@/routes/detail/[id]";
 import { WatchPage } from "@/routes/watch/[id]";
 import { ProfilePage } from "@/routes/profile";
 import { getSelectedProfile } from "@/lib/selected-profile";
+import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
 
 // One client for the lifetime of the app. Creating it inside the component body
 // would discard the query cache on every render of <App />.
@@ -34,14 +35,20 @@ export default function App() {
 
 function AppInner() {
   const { user, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, loading, handoffError } = useAuth();
-  const [pathname, setPathname] = useState(window.location.pathname);
+  // Track the whole location, not just the path, so query-string-only changes
+  // (e.g. /watch/1?type=movie&s=1&e=2) also re-render.
+  //
+  // This subscription is what makes navigation work: every component calls
+  // navigate() from @/lib/navigation, which updates the URL with pushState and
+  // then fires this listener. pushState does NOT emit "popstate", so listening
+  // to popstate alone leaves the UI frozen on the old page.
+  const [locationKey, setLocationKey] = useState(
+    () => window.location.pathname + window.location.search,
+  );
 
   useEffect(() => {
-    const handlePopState = () => {
-      setPathname(window.location.pathname);
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    const sync = () => setLocationKey(window.location.pathname + window.location.search);
+    return subscribeToNavigation(sync);
   }, []);
 
   // Every hook used by this component is declared above this point. Hooks must
@@ -76,10 +83,7 @@ function AppInner() {
     return <ProfilePage />;
   }
 
-  const navigate = (path: string) => {
-    window.history.pushState({}, "", path);
-    setPathname(path);
-  };
+  const pathname = window.location.pathname;
 
   const getPage = (path: string) => {
     if (path === "/") return <HomePage />;
@@ -97,8 +101,10 @@ function AppInner() {
   return (
     <div className="min-h-screen flex flex-col bg-[#111115] text-[#e5e5e5] font-sans antialiased pt-20">
       <Toaster />
-      <Navbar user={user} loading={loading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigate} pathname={pathname} />
-      <main className="flex-1">{getPage(pathname)}</main>
+      <Navbar user={user} loading={loading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigateTo} pathname={pathname} />
+      {/* key remounts the page component on any URL change, so navigating
+          between two detail/watch routes refetches instead of reusing state. */}
+      <main className="flex-1" key={locationKey}>{getPage(pathname)}</main>
       <Footer />
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Check, ChevronDown, Heart, Star } from 'lucide-react';
+import { Plus, Check, Heart, Star } from 'lucide-react';
 import { AnimeItem } from '../types/anime';
 
 interface AnimeCardProps {
@@ -73,7 +73,7 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({
           )}
         </div>
 
-        {/* Hover Action Overlay (My List + Details + Title info) */}
+        {/* Hover Action Overlay (My List + title info) */}
         <div
           className={`absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-3 flex flex-col justify-end transition-opacity duration-300 ${
             isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -93,17 +93,6 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({
               title={isInMyList(item.id) ? 'Remove from List' : 'Add to List'}
             >
               {isInMyList(item.id) ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(item);
-              }}
-              className="w-8 h-8 rounded-full bg-zinc-900/80 border border-zinc-600 text-zinc-300 hover:text-white flex items-center justify-center hover:border-zinc-400 transition-colors cursor-pointer"
-              title="More Details"
-            >
-              <ChevronDown className="w-4 h-4" />
             </button>
           </div>
 
