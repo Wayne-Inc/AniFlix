@@ -20,10 +20,34 @@ import { SettingsPage } from "@/routes/settings";
 import { getSelectedProfile } from "@/lib/selected-profile";
 import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
 import { ReduceMotionProvider } from "@/lib/reduce-motion";
+import {
+  HomePageSkeleton,
+  AnimePageSkeleton,
+  MoviePageSkeleton,
+  TrendingPageSkeleton,
+  SearchPageSkeleton,
+  MyListPageSkeleton,
+  ProfilePageSkeleton,
+  SettingsPageSkeleton,
+} from "@/components/ui/skeleton";
 
 // One client for the lifetime of the app. Creating it inside the component body
 // would discard the query cache on every render of <App />.
 const queryClient = new QueryClient();
+
+function renderSkeletonForPath(pathname: string) {
+  if (pathname === "/") return <HomePageSkeleton />;
+  if (pathname === "/anime") return <AnimePageSkeleton />;
+  if (pathname === "/movie") return <MoviePageSkeleton />;
+  if (pathname === "/trending") return <TrendingPageSkeleton />;
+  if (pathname === "/search") return <SearchPageSkeleton />;
+  if (pathname === "/mylist") return <MyListPageSkeleton />;
+  if (pathname === "/profile") return <ProfilePageSkeleton />;
+  if (pathname === "/settings") return <SettingsPageSkeleton />;
+  if (pathname.startsWith("/detail/")) return <AnimePageSkeleton />; // fallback
+  if (pathname.startsWith("/watch/")) return <AnimePageSkeleton />; // fallback
+  return <HomePageSkeleton />;
+}
 
 export default function App() {
   return (
@@ -63,8 +87,12 @@ function AppInner() {
   // screen components below instead.
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#111115]">
-        <h1 className="text-xl font-semibold text-white">Signing in…</h1>
+      <div className="min-h-screen flex flex-col bg-[#111115] text-[#e5e5e5] font-sans antialiased pt-20">
+        <Navbar user={null} loading={true} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigateTo} pathname={window.location.pathname} />
+        <main className="flex-1" key={locationKey}>
+          {renderSkeletonForPath(window.location.pathname)}
+        </main>
+        <Footer />
       </div>
     );
   }
