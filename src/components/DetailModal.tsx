@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { AnimeItem, Episode } from '../types/anime';
-import { fetchAnimeDetails } from '../services/tmdb';
+import { fetchAnimeDetails, GENRE_NAME_TO_ID } from '../services/tmdb';
 import { setWatched, isWatched } from '../lib/continue-watching-firestore';
 
 interface DetailModalProps {
@@ -241,7 +241,27 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 <div className="bg-zinc-900/60 p-4 rounded-xl border border-zinc-800/80 space-y-3 text-xs">
                   <div>
                     <span className="text-zinc-500 block mb-0.5">Genres:</span>
-                    <span className="text-zinc-200">{displayItem.genres.join(', ')}</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {displayItem.genres.map((g) => {
+                        const genreId = GENRE_NAME_TO_ID[g.toLowerCase()];
+                        const streamflixUrl = genreId
+                          ? `https://streamflix.dpdns.org/explore/${genreId}?q=${encodeURIComponent(g)}`
+                          : null;
+                        return (
+                          <a
+                            key={g}
+                            href={streamflixUrl || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-zinc-300 border border-zinc-700 px-2 py-0.5 rounded hover:border-emerald-500 hover:text-white hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                            title={`Browse ${g} on StreamFlix`}
+                          >
+                            {g}
+                            {streamflixUrl && <ExternalLink className="w-2 h-2" />}
+                          </a>
+                        );
+                      })}
+                    </div>
                   </div>
                   {displayItem.studios && (
                     <div>

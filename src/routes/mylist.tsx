@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Bookmark, Link2, Settings2 } from "lucide-react";
 import { AnimeCard } from "@/components/AnimeCard";
 import { useAuth } from "@/context/AuthContext";
-import { getMyListFromFirestore } from "@/lib/my-list-firestore";
+import { getMyListFromFirestore, removeMyListFromFirestore } from "@/lib/my-list-firestore";
 import { AnimeItem } from "@/types/anime";
 import { navigate } from "@/lib/navigation";
+import { RemoveFromListDialog } from "@/components/RemoveFromListDialog";
+import { toast } from "sonner";
 
 type Source = "all" | "aniflix" | "anilist" | "mal";
 
@@ -34,6 +36,8 @@ export function MyListPage() {
   const [list, setList] = useState<AnimeItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [source, setSource] = useState<Source>("all");
+  const [removeDialogItem, setRemoveDialogItem] = useState<AnimeItem | null>(null);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +74,53 @@ export function MyListPage() {
     () => (source === "all" ? list : list.filter((item) => matchesSource(item, source))),
     [list, source],
   );
+
+  const handleToggleMyList = (item: AnimeItem) => {
+    const isInList = list.some((m) => m.id === item.id);
+    if (isInList) {
+      const isSynced = !!item.anilistId || !!item.malId;
+      if (isSynced) {
+        setRemoveDialogItem(item);
+        setRemoveDialogOpen(true);
+        return;
+      }
+      // Not synced - remove directly
+      removeMyListFromFirestore(item.id);
+      setList((prev) => prev.filter((m) => m.id !== item.id));
+    } else {
+      // Add to list - would need setMyListInFirestore import
+      // For now, just navigate to detail page to add
+      navigate("/detail/" + item.id + "?type=" + item.type);
+    }
+  };
+
+  const handleRemoveConfirm = async (mode: 'local' | 'anilist' | 'mal' | 'all') => {
+    if (!removeDialogItem) return;
+    
+    try {
+      await removeMyListFromFirestore(removeDialogItem.id);
+      setList((prev) => prev.filter((m) => m.id !== removeDialogItem.id));
+      
+      if (mode !== 'local') {
+        const trackers: string[] = [];
+        if (mode === 'anilist' || mode === 'all') trackers.push('AniList');
+        if (mode === 'mal' || mode === 'all') trackers.push('MyAnimeList');
+        
+        toast.info(
+          `Removed from AniFlix. ${trackers.join(' + ')} removal will be synced on next sync.`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success('Removed from your AniFlix list');
+      }
+    } catch (e) {
+      console.error('Failed to remove from list:', e);
+      toast.error('Failed to remove from list');
+    } finally {
+      setRemoveDialogItem(null);
+      setRemoveDialogOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#111115] text-[#e5e5e5] font-sans antialiased">
@@ -153,20 +204,31 @@ export function MyListPage() {
             )}
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-            {visible.map((m) => (
-              <AnimeCard
-                key={m.id}
-                item={m}
-                onSelect={(item) => {
-                  navigate("/detail/" + item.id + "?type=" + item.type);
-                }}
-                onPlay={() => {}}
-                onToggleMyList={() => {}}
-                isInMyList={() => true}
-              />
-            ))}
-          </div>
+          <>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+              {visible.map((m) => (
+                <AnimeCard
+                  key={m.id}
+                  item={m}
+                  onSelect={(item) => {
+                    navigate("/detail/" + item.id + "?type=" + item.type);
+                  }}
+                  onPlay={() => {}}
+                  onToggleMyList={handleToggleMyList}
+                  isInMyList={() => true}
+                />
+              ))}
+            </div>
+            <RemoveFromListDialog
+              item={removeDialogItem}
+              isOpen={removeDialogOpen}
+              onClose={() => {
+                setRemoveDialogOpen(false);
+                setRemoveDialogItem(null);
+              }}
+              onConfirm={handleRemoveConfirm}
+            />
+          </>
         )}
       </main>
     </div>

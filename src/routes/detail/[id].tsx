@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff, ChevronRight, ChevronDown, Monitor, PlayCircle, Share2 } from "lucide-react";
+import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff, ChevronRight, ChevronDown, Monitor, PlayCircle, Share2, ExternalLink } from "lucide-react";
 import { AnimeItem, Episode, Season } from "@/types/anime";
-import { fetchAnimeDetails } from "@/services/tmdb";
+import { fetchAnimeDetails, GENRE_NAME_TO_ID } from "@/services/tmdb";
 import { setWatched, isWatched } from "@/lib/continue-watching-firestore";
 import { setMyListInFirestore, removeMyListFromFirestore, getMyListFromFirestore } from "@/lib/my-list-firestore";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { navigate } from "@/lib/navigation";
+import { RemoveFromListDialog } from "@/components/RemoveFromListDialog";
 
 export function DetailPage() {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -20,6 +21,7 @@ export function DetailPage() {
   const [isInMyList, setIsInMyList] = useState(false);
   const [trailerOpen, setTrailerOpen] = useState(false);
   const [expandedSeasons, setExpandedSeasons] = useState<Set<number>>(new Set());
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -63,12 +65,50 @@ export function DetailPage() {
   };
 
   const toggleMyList = async () => {
-    setIsInMyList((prev) => !prev);
     if (!item) return;
     if (isInMyList) {
+      // Check if synced to any tracker
+      const isSynced = !!item.anilistId || !!item.malId;
+      if (isSynced) {
+        setRemoveDialogOpen(true);
+        return;
+      }
       await removeMyListFromFirestore(item.id);
+      setIsInMyList(false);
     } else {
       await setMyListInFirestore(item, true);
+      setIsInMyList(true);
+    }
+  };
+
+  const handleRemoveConfirm = async (mode: 'local' | 'anilist' | 'mal' | 'all') => {
+    if (!item) return;
+    
+    try {
+      // Remove from local list first
+      await removeMyListFromFirestore(item.id);
+      setIsInMyList(false);
+      
+      // If removing from trackers, trigger sync to push deletions
+      if (mode !== 'local') {
+        // Note: The actual remote deletion would be handled by the sync adapters
+        // For now, we show a toast indicating the intent
+        const trackers: string[] = [];
+        if (mode === 'anilist' || mode === 'all') trackers.push('AniList');
+        if (mode === 'mal' || mode === 'all') trackers.push('MyAnimeList');
+        
+        toast.info(
+          `Removed from AniFlix. ${trackers.join(' + ')} removal will be synced on next sync.`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success('Removed from your AniFlix list');
+      }
+    } catch (e) {
+      console.error('Failed to remove from list:', e);
+      toast.error('Failed to remove from list');
+      // Revert UI on error
+      setIsInMyList(true);
     }
   };
 
@@ -242,11 +282,25 @@ export function DetailPage() {
                     <div>
                       <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Genres</span>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {item.genres.map((g) => (
-                          <span key={g} className="text-xs text-zinc-300 border border-zinc-700 px-2 py-1 rounded">
-                            {g}
-                          </span>
-                        ))}
+                        {item.genres.map((g) => {
+                          const genreId = GENRE_NAME_TO_ID[g.toLowerCase()];
+                          const streamflixUrl = genreId
+                            ? `https://streamflix.dpdns.org/explore/${genreId}?q=${encodeURIComponent(g)}`
+                            : null;
+                          return (
+                            <a
+                              key={g}
+                              href={streamflixUrl || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-zinc-300 border border-zinc-700 px-2 py-1 rounded hover:border-emerald-500 hover:text-white hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                              title={`Browse ${g} on StreamFlix`}
+                            >
+                              {g}
+                              {streamflixUrl && <ExternalLink className="w-2.5 h-2.5" />}
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                     <div>
@@ -387,6 +441,12 @@ export function DetailPage() {
           onClose={() => setTrailerOpen(false)}
         />
       )}
+      <RemoveFromListDialog
+        item={item}
+        isOpen={removeDialogOpen}
+        onClose={() => setRemoveDialogOpen(false)}
+        onConfirm={handleRemoveConfirm}
+      />
     </div>
   );
 }

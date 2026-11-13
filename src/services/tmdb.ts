@@ -47,7 +47,7 @@ async function fetchWithTimeout(url: string): Promise<Response> {
 }
 
 // Map TMDB genre IDs to anime genre names
-const TMDB_GENRE_MAP: Record<number, string> = {
+export const TMDB_GENRE_MAP: Record<number, string> = {
   16: 'Animation',
   10759: 'Action & Adventure',
   35: 'Comedy',
@@ -64,6 +64,11 @@ const TMDB_GENRE_MAP: Record<number, string> = {
   80: 'Crime',
   10402: 'Music',
 };
+
+// Reverse map: genre name -> TMDB genre ID
+export const GENRE_NAME_TO_ID: Record<string, number> = Object.fromEntries(
+  Object.entries(TMDB_GENRE_MAP).map(([id, name]) => [name.toLowerCase(), Number(id)])
+);
 
 const TMDB_STATUS_MAP: Record<string, AnimeItem['status']> = {
   'Returning Series': 'Airing',
