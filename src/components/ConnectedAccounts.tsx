@@ -456,7 +456,7 @@ export function ConnectedAccounts() {
             <button
               type="button"
               onClick={() => onToggle(!syncEnabled)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                 syncEnabled ? "bg-emerald-600" : "bg-zinc-800"
               }`}
               role="switch"
@@ -464,8 +464,8 @@ export function ConnectedAccounts() {
               aria-label={syncEnabled ? "Disable auto-sync" : "Enable auto-sync"}
             >
               <span
-                className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
-                  syncEnabled ? "translate-x-5" : "translate-x-0"
+                className={`pointer-events-none inline-block size-6 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                  syncEnabled ? "translate-x-6" : "translate-x-0"
                 }`}
               />
             </button>
@@ -537,7 +537,7 @@ export function ConnectedAccounts() {
               <button
                 type="button"
                 onClick={() => onVisibilityChange(!syncPrefs.onlyWhenVisible)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                   syncPrefs.onlyWhenVisible ? "bg-emerald-600" : "bg-zinc-800"
                 }`}
                 role="switch"
@@ -545,8 +545,8 @@ export function ConnectedAccounts() {
                 aria-label={syncPrefs.onlyWhenVisible ? "Disable 'only when visible'" : "Enable 'only when visible'"}
               >
                 <span
-                  className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
-                    syncPrefs.onlyWhenVisible ? "translate-x-5" : "translate-x-0"
+                  className={`pointer-events-none inline-block size-6 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                    syncPrefs.onlyWhenVisible ? "translate-x-6" : "translate-x-0"
                   }`}
                 />
               </button>

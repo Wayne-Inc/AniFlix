@@ -395,7 +395,7 @@ export function SettingsPage() {
                         <button
                           onClick={verifyEmail}
                           disabled={verifyEmailSent}
-                          className="ml-auto shrink-0 rounded border border-zinc-700 px-2 py-0.5 text-[10px] hover:bg-zinc-800"
+                          className="ml-auto shrink-0 rounded border border-zinc-700 px-3 py-1.5 text-xs hover:bg-zinc-800"
                         >
                           {verifyEmailSent ? "Email sent" : "Verify email"}
                         </button>
@@ -453,15 +453,15 @@ export function SettingsPage() {
                 </div>
                 <button
                   onClick={() => setReduceMotion(!reduceMotion)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                     reduceMotion ? "bg-red-600" : "bg-zinc-800"
                   }`}
                   role="switch"
                   aria-checked={reduceMotion}
                 >
                   <span
-                    className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
-                      reduceMotion ? "translate-x-5" : "translate-x-0"
+                    className={`pointer-events-none inline-block size-6 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                      reduceMotion ? "translate-x-6" : "translate-x-0"
                     }`}
                   />
                 </button>
@@ -542,7 +542,7 @@ export function SettingsPage() {
                           <button
                             onClick={() => removeDevice.mutate(d)}
                             disabled={removeDevice.isPending}
-                            className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1.5 text-xs text-zinc-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 shrink-0"
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-3 py-2 text-xs text-zinc-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 shrink-0"
                             aria-label="Remove device"
                           >
                             <Trash2 className="size-3.5" /> Remove
@@ -567,7 +567,7 @@ export function SettingsPage() {
             <Section icon={<LogOut className="size-4" />} title="Sign out" description="End this session on this device.">
               <button
                 onClick={handleSignOut}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-zinc-700 px-3 py-2.5 text-sm font-medium hover:bg-zinc-800"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-zinc-700 px-4 py-3 text-sm font-medium hover:bg-zinc-800"
               >
                 <LogOut className="size-4" /> Sign out
               </button>
@@ -580,7 +580,7 @@ export function SettingsPage() {
             >
               <button
                 onClick={() => setConfirmDeleteOpen(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-red-900/60 px-3 py-2.5 text-sm font-medium text-red-400 hover:bg-red-900/20"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-red-900/60 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-900/20"
               >
                 <Trash2 className="size-4" /> Delete account
               </button>
@@ -590,8 +590,14 @@ export function SettingsPage() {
       </main>
 
       {confirmDeleteOpen && (
-        <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-4">
-          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-xl border border-zinc-800 bg-[#18181f] p-4 sm:p-6 text-center shadow-2xl">
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 p-4 sm:p-6"
+          onClick={() => setConfirmDeleteOpen(false)}
+        >
+          <div
+            className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-xl border border-zinc-800 bg-[#18181f] p-4 sm:p-6 text-center shadow-2lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <Trash2 className="mx-auto mb-4 size-10 text-red-500" />
             <h2 className="mb-1 text-xl font-semibold">Delete Account</h2>
             <p className="mb-6 text-sm text-zinc-400">
@@ -603,20 +609,23 @@ export function SettingsPage() {
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
                 placeholder="Enter password"
+                autoComplete="current-password"
+                autoCapitalize="none"
+                spellCheck={false}
                 className="mb-4 w-full rounded bg-zinc-900 px-4 py-3 text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={() => setConfirmDeleteOpen(false)}
-                className="flex-1 rounded border border-zinc-700 px-4 py-2 text-sm hover:bg-zinc-800"
+                className="flex-1 rounded border border-zinc-700 px-4 py-3 text-sm hover:bg-zinc-800"
               >
                 Cancel
               </button>
               <button
                 onClick={deleteAccount}
                 disabled={deletingAccount}
-                className="flex-1 rounded bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
+                className="flex-1 rounded bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-700 disabled:opacity-60"
               >
                 {deletingAccount ? "Deleting…" : "Delete"}
               </button>

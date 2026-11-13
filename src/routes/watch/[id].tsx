@@ -208,7 +208,19 @@ export function WatchPage() {
       className="fixed inset-0 z-50 overflow-hidden bg-black select-none"
       onMouseMove={wake}
       onTouchEnd={(e) => {
-        e.preventDefault();
+        // Don't suppress taps on buttons/interactive elements — preventDefault()
+        // on touchend blocks the synthesized click event on mobile, which stops
+        // buttons in the controls from firing their onClick handlers.
+        const target = e.target as HTMLElement;
+        const isInteractive =
+          target.tagName === "BUTTON" ||
+          target.tagName === "INPUT" ||
+          target.tagName === "SELECT" ||
+          target.tagName === "TEXTAREA" ||
+          target.closest("button");
+        if (!isInteractive) {
+          e.preventDefault();
+        }
         e.stopPropagation();
         wake();
       }}
