@@ -20,33 +20,17 @@ import { SettingsPage } from "@/routes/settings";
 import { getSelectedProfile } from "@/lib/selected-profile";
 import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
 import { ReduceMotionProvider } from "@/lib/reduce-motion";
-import {
-  HomePageSkeleton,
-  AnimePageSkeleton,
-  MoviePageSkeleton,
-  TrendingPageSkeleton,
-  SearchPageSkeleton,
-  MyListPageSkeleton,
-  ProfilePageSkeleton,
-  SettingsPageSkeleton,
-} from "@/components/ui/skeleton";
 
 // One client for the lifetime of the app. Creating it inside the component body
 // would discard the query cache on every render of <App />.
 const queryClient = new QueryClient();
 
-function renderSkeletonForPath(pathname: string) {
-  if (pathname === "/") return <HomePageSkeleton />;
-  if (pathname === "/anime") return <AnimePageSkeleton />;
-  if (pathname === "/movie") return <MoviePageSkeleton />;
-  if (pathname === "/trending") return <TrendingPageSkeleton />;
-  if (pathname === "/search") return <SearchPageSkeleton />;
-  if (pathname === "/mylist") return <MyListPageSkeleton />;
-  if (pathname === "/profile") return <ProfilePageSkeleton />;
-  if (pathname === "/settings") return <SettingsPageSkeleton />;
-  if (pathname.startsWith("/detail/")) return <AnimePageSkeleton />; // fallback
-  if (pathname.startsWith("/watch/")) return <AnimePageSkeleton />; // fallback
-  return <HomePageSkeleton />;
+function LoadingBar() {
+  return (
+    <div className="fixed top-20 left-0 right-0 h-1 bg-transparent z-50 pointer-events-none" style={{ transform: "translateY(-20px)" }}>
+      <div className="h-full bg-red-600 animate-loading-bar origin-left" style={{ transformOrigin: "left center" }} />
+    </div>
+  );
 }
 
 export default function App() {
@@ -89,8 +73,14 @@ function AppInner() {
     return (
       <div className="min-h-screen flex flex-col bg-[#111115] text-[#e5e5e5] font-sans antialiased pt-20">
         <Navbar user={null} loading={true} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigateTo} pathname={window.location.pathname} />
+        <LoadingBar />
         <main className="flex-1" key={locationKey}>
-          {renderSkeletonForPath(window.location.pathname)}
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-zinc-400">Loading AniFlix…</p>
+            </div>
+          </div>
         </main>
         <Footer />
       </div>
