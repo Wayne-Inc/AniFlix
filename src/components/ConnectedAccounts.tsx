@@ -32,6 +32,7 @@ import {
   fetchAniListViewer,
   getAniListConnection,
   isAniListConfigured,
+  isAniListUnauthorized,
   saveAniListViewer,
   startAniListLink,
   type AniListConnection,
@@ -146,10 +147,10 @@ export function ConnectedAccounts() {
       setConnection(getAniListConnection());
       return viewer;
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Could not read your AniList account.";
+      const message = e instanceof Error ? e.message : "We couldn't read your AniList account.";
       // A 401 means the stored token was revoked or expired: drop the dead
       // connection instead of showing a linked account that no longer works.
-      if (/\b401\b/.test(message)) {
+      if (isAniListUnauthorized(e)) {
         disconnectAniList();
         setConnection(null);
         setError("Your AniList connection expired. Please connect again.");

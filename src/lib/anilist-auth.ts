@@ -34,6 +34,23 @@ export type AniListConnection = {
   linkedAt: number;
 };
 
+/**
+ * Carries the HTTP status so callers can react to a dead token without parsing
+ * the message. User-facing text stays plain; the status goes to the console.
+ */
+export class AniListRequestError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "AniListRequestError";
+    this.status = status;
+  }
+}
+
+export function isAniListUnauthorized(error: unknown): boolean {
+  return error instanceof AniListRequestError && error.status === 401;
+}
+
 function readStorage(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -108,9 +125,8 @@ export function disconnectAniList() {
 export function startAniListLink(): void {
   const clientId = anilistClientId();
   if (!clientId) {
-    throw new Error(
-      "AniList isn't configured on this build (VITE_ANILIST_CLIENT_ID is missing).",
-    );
+    console.warn("[anilist] VITE_ANILIST_CLIENT_ID is missing from this build.");
+    throw new Error("AniList sign-in isn't available right now. Please try again later.");
   }
 
   const state = crypto.randomUUID();
@@ -192,7 +208,9 @@ export async function fetchAniListViewer(token: string): Promise<AniListViewer> 
   });
 
   if (!res.ok) {
-    throw new Error(`AniList returned ${res.status}`);
+    // The status is for the console; the user only sees a plain sentence.
+    console.warn("[anilist] viewer request failed with status", res.status);
+    throw new AniListRequestError("We couldn't read your AniList account.", res.status);
   }
 
   const payload = (await res.json()) as {
@@ -202,7 +220,8 @@ export async function fetchAniListViewer(token: string): Promise<AniListViewer> 
 
   const viewer = payload.data?.Viewer;
   if (!viewer?.id) {
-    throw new Error(payload.errors?.[0]?.message ?? "AniList did not return an account");
+    console.warn("[anilist] viewer query returned no account:", payload.errors?.[0]?.message ?? "");
+    throw new Error("We couldn't read your AniList account.");
   }
 
   return {
@@ -212,20 +231,24 @@ export async function fetchAniListViewer(token: string): Promise<AniListViewer> 
   };
 }
 
+/**
+ * Plain-language copy for the settings card and toast. No env var names, no HTTP
+ * codes: those belong in the server logs, not in front of a user.
+ */
 export function describeAniListError(code: string): string {
   switch (code) {
     case "access_denied":
       return "You cancelled the AniList connection.";
     case "state_mismatch":
-      return "That AniList response didn't match this session. Please try connecting again.";
+      return "That AniList sign-in expired. Please try again.";
     case "token_exchange_failed":
-      return "AniList rejected the login. Check the client ID/secret and the registered redirect URL.";
+      return "We couldn't finish connecting to AniList. Please try again in a moment.";
     case "invalid_client":
-      return "AniList rejected the client credentials. Check ANILIST_CLIENT_ID and ANILIST_CLIENT_SECRET in Vercel — no quotes, no stray spaces — then redeploy.";
+      return "AniList sign-in isn't available right now. Please try again later.";
     case "missing_code":
     case "missing_token":
-      return "AniList did not return an authorization code.";
+      return "AniList didn't send us what we needed. Please try again.";
     default:
-      return `AniList connection failed (${code}).`;
+      return "Something went wrong connecting to AniList. Please try again.";
   }
 }

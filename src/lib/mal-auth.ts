@@ -107,7 +107,8 @@ export function disconnectMal() {
 
 export function startMalLink(): void {
   if (!isMalConfigured()) {
-    throw new Error("MyAnimeList isn't configured on this build (VITE_MAL_CLIENT_ID is missing).");
+    console.warn("[mal] VITE_MAL_CLIENT_ID is missing from this build.");
+    throw new Error("MyAnimeList sign-in isn't available right now. Please try again later.");
   }
   // Full navigation: the start endpoint must set the PKCE cookie on this origin.
   window.location.assign(MAL_START_PATH);
@@ -218,21 +219,25 @@ export async function fetchMalUser(token: string): Promise<MalUser> {
   return { id: data.id, name: data.name, picture: data.picture ?? null };
 }
 
+/**
+ * Plain-language copy for the settings card and toast. No env var names, no HTTP
+ * codes: those belong in the server logs, not in front of a user.
+ */
 export function describeMalError(code: string): string {
   switch (code) {
     case "access_denied":
       return "You cancelled the MyAnimeList connection.";
     case "state_mismatch":
-      return "That MyAnimeList response didn't match this session. Please try connecting again.";
+      return "That MyAnimeList sign-in expired. Please try again.";
     case "missing_cookie":
-      return "The MyAnimeList login expired before it finished. Please try again.";
+      return "That MyAnimeList sign-in took too long. Please try again.";
     case "token_exchange_failed":
-      return "MyAnimeList rejected the login. Check the client ID/secret and the registered redirect URL.";
+      return "We couldn't finish connecting to MyAnimeList. Please try again in a moment.";
     case "invalid_client":
-      return "MyAnimeList rejected the client credentials. Check MAL_CLIENT_ID and MAL_CLIENT_SECRET in Vercel — no quotes, no stray spaces — then redeploy.";
+      return "MyAnimeList sign-in isn't available right now. Please try again later.";
     case "missing_code":
-      return "MyAnimeList did not return an authorization code.";
+      return "MyAnimeList didn't send us what we needed. Please try again.";
     default:
-      return `MyAnimeList connection failed (${code}).`;
+      return "Something went wrong connecting to MyAnimeList. Please try again.";
   }
 }

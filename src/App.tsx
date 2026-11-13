@@ -19,6 +19,7 @@ import { ProfilePage } from "@/routes/profile";
 import { SettingsPage } from "@/routes/settings";
 import { getSelectedProfile } from "@/lib/selected-profile";
 import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
+import { ReduceMotionProvider } from "@/lib/reduce-motion";
 
 // One client for the lifetime of the app. Creating it inside the component body
 // would discard the query cache on every render of <App />.
@@ -27,9 +28,11 @@ const queryClient = new QueryClient();
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppInner />
-      </AuthProvider>
+      <ReduceMotionProvider>
+        <AuthProvider>
+          <AppInner />
+        </AuthProvider>
+      </ReduceMotionProvider>
     </QueryClientProvider>
   );
 }

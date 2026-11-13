@@ -110,7 +110,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     );
     res.statusCode = 500;
     res.setHeader("Cache-Control", "no-store");
-    res.end("AniList OAuth is not configured on this deployment.");
+    res.end("AniList sign-in isn't available right now. Please try again later.");
     return;
   }
 

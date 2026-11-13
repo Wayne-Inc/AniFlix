@@ -107,7 +107,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   if (!clientId || !clientSecret) {
     console.error("[mal] MAL_CLIENT_ID / MAL_CLIENT_SECRET are not set in the environment.");
     res.statusCode = 500;
-    res.end("MyAnimeList OAuth is not configured on this deployment.");
+    res.end("MyAnimeList sign-in isn't available right now. Please try again later.");
     return;
   }
 

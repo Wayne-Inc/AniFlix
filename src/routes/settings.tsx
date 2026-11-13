@@ -9,6 +9,10 @@ import {
   Upload,
   Loader2,
   Check,
+  Smartphone,
+  Monitor,
+  Tablet,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ConnectedAccounts } from "@/components/ConnectedAccounts";
@@ -20,9 +24,14 @@ import {
   reauthenticateWithCredential,
   updateProfile,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, where, getDocs, deleteDoc, doc, Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getDeviceId, parseUserAgent, recordCurrentDevice } from "@/lib/device-tracking";
+import { useReduceMotion } from "@/lib/reduce-motion";
+import { formatDistanceToNow } from "date-fns";
 
 type SectionProps = {
   icon: React.ReactNode;
@@ -52,8 +61,36 @@ function Section({ icon, title, description, children, className = "" }: Section
   );
 }
 
+type Device = {
+  id: string;
+  device_id: string;
+  device_label: string;
+  browser: string | null;
+  os: string | null;
+  ip_address: string | null;
+  last_seen_at: Timestamp | null;
+  created_at: Timestamp | null;
+};
+
+function deviceIcon(label: string) {
+  if (/Mobile/i.test(label)) return Smartphone;
+  if (/Tablet/i.test(label)) return Tablet;
+  return Monitor;
+}
+
+function formatLastSeen(ts: Timestamp | null): string {
+  if (!ts) return "unknown";
+  try {
+    return formatDistanceToNow(ts.toDate(), { addSuffix: true });
+  } catch {
+    return "unknown";
+  }
+}
+
 export function SettingsPage() {
   const { user, signOut } = useAuth();
+  const { reduceMotion, setReduceMotion } = useReduceMotion();
+  const qc = useQueryClient();
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [savingName, setSavingName] = useState(false);
@@ -64,6 +101,15 @@ export function SettingsPage() {
   const [deletePassword, setDeletePassword] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Record current device on mount
+  useEffect(() => {
+    if (user) {
+      recordCurrentDevice();
+    }
+  }, [user]);
+
+  const currentDeviceId = getDeviceId();
+
   const providers = user?.providerData ?? [];
   const canChangePassword = !!user?.email && providers.some((p) => p.providerId === "password");
   const createdAt = user?.metadata?.creationTime ?? null;
@@ -72,6 +118,98 @@ export function SettingsPage() {
   useEffect(() => {
     if (user?.displayName) setDisplayName(user.displayName);
   }, [user?.displayName]);
+
+  // Fetch user devices
+  const devicesQ = useQuery({
+    queryKey: ["user_devices", user?.uid],
+    enabled: !!user,
+    refetchInterval: 30_000,
+    queryFn: async (): Promise<Device[]> => {
+      if (!user) return [];
+      const q = query(collection(db, "user_devices"), where("user_id", "==", user.uid));
+      const snap = await getDocs(q);
+      return snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as Device)
+        .sort((a, b) => {
+          const ta = a.last_seen_at?.toDate().getTime() ?? 0;
+          const tb = b.last_seen_at?.toDate().getTime() ?? 0;
+          return tb - ta;
+        });
+    },
+  });
+
+  const deviceQueryKey = ["user_devices", user?.uid] as const;
+
+  // Remove a single device
+  const removeDevice = useMutation({
+    mutationFn: async (d: Device) => {
+      if (d.device_id === currentDeviceId) return;
+      const res = await fetch("/api/revoke-device-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: d.id }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    },
+    onMutate: async (d: Device) => {
+      if (d.device_id === currentDeviceId) return { prev: undefined };
+      await qc.cancelQueries({ queryKey: deviceQueryKey });
+      const prev = qc.getQueryData<Device[]>(deviceQueryKey);
+      qc.setQueryData<Device[]>(deviceQueryKey, (old) =>
+        (old ?? []).filter((dev) => dev.id !== d.id),
+      );
+      return { prev };
+    },
+    onError: (e: Error, _d, context) => {
+      if (context?.prev) qc.setQueryData(deviceQueryKey, context.prev);
+      const msg =
+        e.message?.includes("CORS") || e.message?.includes("Failed to fetch")
+          ? "Unable to reach the server (CORS/network issue). Please try again later."
+          : e.message;
+      toast.error(msg);
+    },
+    onSuccess: () => {
+      toast.success("Device session revoked");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: deviceQueryKey });
+    },
+  });
+
+  // Remove all other devices
+  const removeAllOthers = useMutation({
+    mutationFn: async () => {
+      if (!user) return;
+      const res = await fetch("/api/revoke-other-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentDeviceId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    },
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: deviceQueryKey });
+      const prev = qc.getQueryData<Device[]>(deviceQueryKey);
+      qc.setQueryData<Device[]>(deviceQueryKey, (old) =>
+        (old ?? []).filter((d) => d.device_id === currentDeviceId),
+      );
+      return { prev };
+    },
+    onError: (e: Error, _vars, context) => {
+      if (context?.prev) qc.setQueryData(deviceQueryKey, context.prev);
+      const msg =
+        e.message?.includes("CORS") || e.message?.includes("Failed to fetch")
+          ? "Unable to reach the server (CORS/network issue). Please try again later."
+          : e.message;
+      toast.error(msg);
+    },
+    onSuccess: () => {
+      toast.success("Signed out of all other devices");
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: deviceQueryKey });
+    },
+  });
 
   const saveName = async () => {
     if (!user || !displayName.trim()) return;
@@ -314,11 +452,18 @@ export function SettingsPage() {
                   <p className="mt-0.5 text-xs text-zinc-500">Disable animations and transitions.</p>
                 </div>
                 <button
-                  className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-zinc-800 transition-colors"
+                  onClick={() => setReduceMotion(!reduceMotion)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    reduceMotion ? "bg-red-600" : "bg-zinc-800"
+                  }`}
                   role="switch"
-                  aria-checked="false"
+                  aria-checked={reduceMotion}
                 >
-                  <span className="pointer-events-none inline-block size-5 translate-x-0 rounded-full bg-white shadow-lg ring-0 transition-colors" />
+                  <span
+                    className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                      reduceMotion ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
                 </button>
               </div>
             </Section>
@@ -348,9 +493,75 @@ export function SettingsPage() {
               title="Devices signed in"
               description="Recently active devices on your account."
             >
-              <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-8 text-center text-sm text-zinc-500">
-                No devices recorded yet.
-              </div>
+              {devicesQ.isLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-3 py-3 rounded-lg border border-zinc-800 bg-zinc-900/40 animate-pulse">
+                      <div className="grid size-10 shrink-0 place-items-center rounded-md bg-zinc-800">
+                        <Monitor className="size-5 text-zinc-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="h-4 w-32 bg-zinc-800 rounded"></div>
+                        <div className="mt-0.5 h-3 w-40 bg-zinc-800 rounded text-xs"></div>
+                      </div>
+                      <div className="h-8 w-20 bg-zinc-800 rounded shrink-0"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (devicesQ.data?.length ?? 0) === 0 ? (
+                <div className="rounded-lg border border-dashed border-zinc-800 px-4 py-8 text-center text-sm text-zinc-500">
+                  No devices recorded yet.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {devicesQ.data?.map((d) => {
+                    const Icon = deviceIcon(d.device_label);
+                    const isCurrent = d.device_id === currentDeviceId;
+                    return (
+                      <div
+                        key={d.id}
+                        className="flex items-center gap-3 px-3 py-3 rounded-lg border border-zinc-800 bg-zinc-900/40"
+                      >
+                        <div className="grid size-10 shrink-0 place-items-center rounded-md bg-zinc-800">
+                          <Icon className="size-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-medium">{d.device_label}</p>
+                            {isCurrent && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                                <CheckCircle2 className="size-3" /> This device
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-zinc-500">
+                            {d.ip_address ?? "IP unknown"} · Last active {formatLastSeen(d.last_seen_at)}
+                          </p>
+                        </div>
+                        {!isCurrent && (
+                          <button
+                            onClick={() => removeDevice.mutate(d)}
+                            disabled={removeDevice.isPending}
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1.5 text-xs text-zinc-400 hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/50 shrink-0"
+                            aria-label="Remove device"
+                          >
+                            <Trash2 className="size-3.5" /> Remove
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {(devicesQ.data?.length ?? 0) > 1 && (
+                    <button
+                      onClick={() => removeAllOthers.mutate()}
+                      disabled={removeAllOthers.isPending}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+                    >
+                      <LogOut className="size-4" /> Sign out other devices
+                    </button>
+                  )}
+                </div>
+              )}
             </Section>
 
             <Section icon={<LogOut className="size-4" />} title="Sign out" description="End this session on this device.">
@@ -362,19 +573,18 @@ export function SettingsPage() {
               </button>
             </Section>
 
-            <section className="rounded-xl border border-red-900/40 bg-red-950/10 p-5 sm:p-6">
-              <h2 className="text-base font-semibold text-red-300">Danger zone</h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                Deleting your account removes your profiles and lists from AniFlix. Trackers keep
-                their own data.
-              </p>
+            <Section
+              icon={<Trash2 className="size-4" />}
+              title="Delete account"
+              description="Permanently delete your account and all data."
+            >
               <button
                 onClick={() => setConfirmDeleteOpen(true)}
-                className="mt-4 inline-flex items-center gap-2 rounded-md border border-red-900/60 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-900/20"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-red-900/60 px-3 py-2.5 text-sm font-medium text-red-400 hover:bg-red-900/20"
               >
-                <Trash2 className="size-3.5" /> Delete account
+                <Trash2 className="size-4" /> Delete account
               </button>
-            </section>
+            </Section>
           </aside>
         </div>
       </main>

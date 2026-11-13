@@ -9,7 +9,7 @@
 // What this deliberately does NOT do: delete entries on AniList when a title is
 // removed in AniFlix. A local removal would otherwise be a silent remote delete,
 // and AniList has no undo. Removal stays local for now.
-import { fetchAniListViewer, getAniListAccessToken } from "./anilist-auth";
+import { fetchAniListViewer, getAniListAccessToken, isAniListUnauthorized } from "./anilist-auth";
 import {
   deriveListStatus,
   deriveProgress,
@@ -76,20 +76,22 @@ async function gql<T>(
 
   const payload = (await res.json().catch(() => ({}))) as GraphQlResponse<T>;
   if (!res.ok) {
-    throw new AniListSyncError(
-      payload.errors?.[0]?.message ?? `AniList returned ${res.status}.`,
-      "failed",
-    );
+    console.warn("[anilist] request failed:", res.status, payload.errors?.[0]?.message ?? "");
+    throw new AniListSyncError("AniList couldn't process that request. Please try again.", "failed");
   }
   if (payload.errors?.length) {
     const status = payload.errors[0]?.status;
-    throw new AniListSyncError(
-      payload.errors[0]?.message ?? "AniList rejected the request.",
-      status === 401 ? "unauthorized" : "failed",
-    );
+    if (status === 401) {
+      throw new AniListSyncError(
+        "AniList rejected the stored token. Connect the account again.",
+        "unauthorized",
+      );
+    }
+    console.warn("[anilist] GraphQL error:", payload.errors[0]?.message ?? "");
+    throw new AniListSyncError("AniList couldn't process that request. Please try again.", "failed");
   }
   if (!payload.data) {
-    throw new AniListSyncError("AniList returned an empty response.", "failed");
+    throw new AniListSyncError("AniList didn't return your list. Please try again.", "failed");
   }
   return payload.data;
 }
@@ -335,7 +337,7 @@ async function pushEntry(
 ): Promise<{ status: string; progress: number; updatedAtMs: number }> {
   const data = await gql<SaveData>(token, SAVE_MUTATION, { mediaId, status, progress });
   const saved = data.saveMediaListEntry;
-  if (!saved) throw new AniListSyncError("AniList did not confirm the change.", "failed");
+  if (!saved) throw new AniListSyncError("AniList didn't confirm that change. Please try again.", "failed");
   return {
     status: saved.status,
     progress: saved.progress,
@@ -381,7 +383,7 @@ export async function syncAniList(): Promise<SyncSummary> {
     try {
       viewer = await fetchAniListViewer(token);
     } catch (e) {
-      if (e instanceof Error && /\b401\b/.test(e.message)) {
+      if (isAniListUnauthorized(e)) {
         throw new AniListSyncError("AniList rejected the stored token. Connect the account again.", "unauthorized");
       }
       throw e;
