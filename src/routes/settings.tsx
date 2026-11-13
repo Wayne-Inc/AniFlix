@@ -45,18 +45,18 @@ type SectionProps = {
 function Section({ icon, title, description, children, className = "" }: SectionProps) {
   return (
     <section
-      className={`rounded-xl border border-zinc-800 bg-[#17171c]/80 p-5 sm:p-6 ${className}`}
+      className={`rounded-xl border border-zinc-800 bg-[#17171c]/80 p-4 sm:p-5 ${className}`}
     >
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-800/80 text-zinc-300">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-800/80 text-zinc-300">
           {icon}
         </span>
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-zinc-100">{title}</h2>
+          <h2 className="text-sm font-semibold text-zinc-100">{title}</h2>
           {description ? <p className="mt-1 text-xs text-zinc-500">{description}</p> : null}
         </div>
       </div>
-      <div className="mt-5 min-w-0">{children}</div>
+      <div className="mt-4 min-w-0">{children}</div>
     </section>
   );
 }
@@ -309,33 +309,33 @@ export function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#111115] text-[#e5e5e5] font-sans antialiased overflow-x-hidden">
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:py-10 sm:px-6 lg:px-8 lg:py-14 overflow-x-hidden">
+      <main className="mx-auto w-full max-w-7xl px-4 py-4 sm:py-6 sm:px-6 lg:px-8 lg:py-10 overflow-x-hidden">
         <header className="max-w-3xl">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Account Settings</h1>
-          <p className="mt-2 text-sm text-zinc-400">
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">Account Settings</h1>
+          <p className="mt-1 text-sm text-zinc-400">
             Manage your profile, connected trackers, and security. AniList and MyAnimeList sign-in
             happens here, in Connected accounts.
           </p>
         </header>
 
-        <div className="mt-6 grid gap-6 lg:mt-10 lg:grid-cols-12">
+        <div className="mt-4 grid gap-4 lg:mt-8 lg:grid-cols-12">
           {/* Main column */}
-          <div className="space-y-6 lg:col-span-7 xl:col-span-8">
+          <div className="space-y-4 lg:col-span-7 xl:col-span-8">
             <Section
               icon={<UserIcon className="size-4" />}
               title="Profile"
               description="This is how you appear in AniFlix."
             >
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-                <div className="flex shrink-0 flex-col items-center gap-3">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="flex shrink-0 flex-col items-center gap-2">
                   {shownAvatar ? (
                     <img
                       src={shownAvatar}
                       alt=""
-                      className="size-24 rounded-full object-cover ring-2 ring-zinc-700 lg:size-28"
+                      className="size-20 rounded-full object-cover ring-2 ring-zinc-700 lg:size-24"
                     />
                   ) : (
-                    <div className="grid size-24 place-items-center rounded-full bg-gradient-to-br from-rose-500 to-red-700 text-4xl font-black text-white/90 lg:size-28">
+                    <div className="grid size-20 place-items-center rounded-full bg-gradient-to-br from-rose-500 to-red-700 text-3xl font-black text-white/90 lg:size-24">
                       {(displayName || user?.email || "?")[0]?.toUpperCase()}
                     </div>
                   )}
@@ -381,7 +381,7 @@ export function SettingsPage() {
                   />
                 </div>
 
-                <div className="grid flex-1 gap-5 sm:grid-cols-2">
+                <div className="grid flex-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="text-xs uppercase tracking-wider text-zinc-500">Email</label>
                     <div className="mt-1.5 flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-900/60 px-3 py-2.5 text-sm">
@@ -446,8 +446,8 @@ export function SettingsPage() {
               title="Accessibility"
               description="Customize your viewing experience."
             >
-              <div className="flex items-center justify-between gap-4 rounded-lg border border-zinc-700 bg-zinc-900/60 px-4 py-3">
-                <div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-700 bg-zinc-900/60 px-4 py-2.5">
+                <div className="min-w-0">
                   <p className="text-sm font-medium">Reduce Motion</p>
                   <p className="mt-0.5 text-xs text-zinc-500">Disable animations and transitions.</p>
                 </div>
@@ -470,7 +470,7 @@ export function SettingsPage() {
           </div>
 
           {/* Side column */}
-          <aside className="space-y-6 lg:col-span-5 xl:col-span-4">
+          <aside className="space-y-4 lg:col-span-5 xl:col-span-4">
             {canChangePassword && (
               <Section
                 icon={<KeyRound className="size-4" />}
