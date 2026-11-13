@@ -56,7 +56,7 @@ function Section({ icon, title, description, children, className = "" }: Section
           {description ? <p className="mt-1 text-xs text-zinc-500">{description}</p> : null}
         </div>
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-5 min-w-0">{children}</div>
     </section>
   );
 }
@@ -308,8 +308,8 @@ export function SettingsPage() {
   const avatarPending = !!avatarUrl && avatarUrl !== (user?.photoURL ?? "");
 
   return (
-    <div className="min-h-screen bg-[#111115] text-[#e5e5e5] font-sans antialiased">
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:py-10 sm:px-6 lg:px-8 lg:py-14">
+    <div className="min-h-screen bg-[#111115] text-[#e5e5e5] font-sans antialiased overflow-x-hidden">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:py-10 sm:px-6 lg:px-8 lg:py-14 overflow-x-hidden">
         <header className="max-w-3xl">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Account Settings</h1>
           <p className="mt-2 text-sm text-zinc-400">
