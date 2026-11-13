@@ -220,6 +220,8 @@ export function describeAniListError(code: string): string {
       return "That AniList response didn't match this session. Please try connecting again.";
     case "token_exchange_failed":
       return "AniList rejected the login. Check the client ID/secret and the registered redirect URL.";
+    case "invalid_client":
+      return "AniList rejected the client credentials. Check ANILIST_CLIENT_ID and ANILIST_CLIENT_SECRET in Vercel — no quotes, no stray spaces — then redeploy.";
     case "missing_code":
     case "missing_token":
       return "AniList did not return an authorization code.";

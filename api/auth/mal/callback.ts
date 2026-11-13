@@ -53,6 +53,34 @@ function readCookie(req: IncomingMessage, name: string): string | null {
   return null;
 }
 
+/** Strip quotes that come from pasting .env-style values into the dashboard. */
+function envValue(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const unquoted = raw.replace(/^["']|["']$/g, "").trim();
+  return unquoted || undefined;
+}
+
+/** Canonical origin for the redirect back; a bad APP_URL must never crash it. */
+function resolveAppOrigin(req: IncomingMessage): string {
+  const configured = envValue("APP_URL");
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        return parsed.origin;
+      }
+    } catch {
+      // fall through
+    }
+    console.error(
+      "[mal] APP_URL is not an absolute http(s) URL; using the request origin instead:",
+      configured,
+    );
+  }
+  return requestOrigin(req);
+}
+
 function sendResult(res: ServerResponse, appOrigin: string, params: Record<string, string>) {
   const target = new URL(`${appOrigin}/settings`);
   target.hash = new URLSearchParams(params).toString();
@@ -72,9 +100,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
-  const clientId = process.env.MAL_CLIENT_ID?.trim();
-  const clientSecret = process.env.MAL_CLIENT_SECRET?.trim();
-  const appOrigin = (process.env.APP_URL?.trim() || requestOrigin(req)).replace(/\/+$/, "");
+  const clientId = envValue("MAL_CLIENT_ID");
+  const clientSecret = envValue("MAL_CLIENT_SECRET");
+  const appOrigin = resolveAppOrigin(req);
 
   if (!clientId || !clientSecret) {
     console.error("[mal] MAL_CLIENT_ID / MAL_CLIENT_SECRET are not set in the environment.");
@@ -119,7 +147,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
-  const redirectUri = process.env.MAL_REDIRECT_URI?.trim() || malRedirectUri(appOrigin);
+  const redirectUri = envValue("MAL_REDIRECT_URI") || malRedirectUri(appOrigin);
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
@@ -144,8 +172,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const payload = (await tokenRes.json().catch(() => ({}))) as MalTokenResponse;
 
     if (!tokenRes.ok || !payload.access_token || !payload.refresh_token) {
-      console.error("[mal] token exchange failed:", tokenRes.status, payload.error ?? payload.message ?? "");
-      sendResult(res, appOrigin, { mal_error: "token_exchange_failed", mal_state: state });
+      // No code, secret or token is logged; the id is public and the length is
+      // enough to spot a truncated or empty paste.
+      console.error(
+        "[mal] token exchange failed:",
+        tokenRes.status,
+        payload.error ?? payload.message ?? "",
+        `| client_id=${clientId} secret_length=${clientSecret.length}`,
+      );
+      const reason = payload.error === "invalid_client" ? "invalid_client" : "token_exchange_failed";
+      sendResult(res, appOrigin, { mal_error: reason, mal_state: state });
       return;
     }
 

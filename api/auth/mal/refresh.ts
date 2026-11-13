@@ -54,6 +54,14 @@ function json(res: ServerResponse, status: number, payload: unknown) {
   res.end(JSON.stringify(payload));
 }
 
+/** Strip quotes that come from pasting .env-style values into the dashboard. */
+function envValue(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const unquoted = raw.replace(/^["']|["']$/g, "").trim();
+  return unquoted || undefined;
+}
+
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "POST") {
     res.statusCode = 405;
@@ -62,8 +70,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
-  const clientId = process.env.MAL_CLIENT_ID?.trim();
-  const clientSecret = process.env.MAL_CLIENT_SECRET?.trim();
+  const clientId = envValue("MAL_CLIENT_ID");
+  const clientSecret = envValue("MAL_CLIENT_SECRET");
   if (!clientId || !clientSecret) {
     json(res, 500, { error: "not_configured" });
     return;

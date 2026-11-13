@@ -82,4 +82,6 @@ as unmatched — `src/lib/media-ids.ts` fills those in from the crosswalk.
 | `missing_cookie` after login | The 10-minute cookie expired, or the browser blocked it. Start again. |
 | `state_mismatch` | The callback was opened from a different browser/session than the one that started it. |
 | 500 "not configured on this deployment" | `MAL_CLIENT_ID` / `MAL_CLIENT_SECRET` missing from the Vercel environment. |
+| "MyAnimeList rejected the client credentials" (`invalid_client`) | Id/secret mismatch, or pasted **with quotes**. Quotes are stripped automatically now; compare `client_id` and `secret_length` in the log with the MAL app page. |
+| `TypeError: Invalid URL` | `APP_URL` still holds the `.env.example` placeholder. Ignored automatically now, but set the real origin. |
 | 403 from MAL | MAL's WAF rejecting the request — every call already sends a `User-Agent`; check the client id matches the token. |

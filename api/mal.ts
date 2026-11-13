@@ -64,6 +64,14 @@ function bearerToken(req: IncomingMessage): string | null {
   return match ? match[1] : null;
 }
 
+/** Strip quotes that come from pasting .env-style values into the dashboard. */
+function envValue(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const unquoted = raw.replace(/^["']|["']$/g, "").trim();
+  return unquoted || undefined;
+}
+
 function malHeaders(token: string): Record<string, string> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -71,7 +79,7 @@ function malHeaders(token: string): Record<string, string> {
     // MAL's WAF rejects requests without a recognisable user agent.
     "User-Agent": "AniFlix/1.0 (+https://ani.streamflix.dpdns.org)",
   };
-  const clientId = process.env.MAL_CLIENT_ID?.trim();
+  const clientId = envValue("MAL_CLIENT_ID");
   if (clientId) headers["X-MAL-CLIENT-ID"] = clientId;
   return headers;
 }

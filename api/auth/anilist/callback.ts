@@ -45,6 +45,42 @@ function requestOrigin(req: IncomingMessage): string {
   return `${proto}://${host}`;
 }
 
+/**
+ * Env values pasted from a .env file often keep their surrounding quotes, which
+ * turns a client id into `"56788"` and makes the provider answer
+ * `invalid_client`. Strip them here instead of trusting the dashboard.
+ */
+function envValue(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const unquoted = raw.replace(/^["']|["']$/g, "").trim();
+  return unquoted || undefined;
+}
+
+/**
+ * Canonical origin for the redirect back to /settings. Falls back to the request
+ * origin when APP_URL is missing, is still the .env.example placeholder, or is not
+ * an absolute URL — a bad value must never crash the redirect.
+ */
+function resolveAppOrigin(req: IncomingMessage): string {
+  const configured = envValue("APP_URL");
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        return parsed.origin;
+      }
+    } catch {
+      // fall through
+    }
+    console.error(
+      "[anilist] APP_URL is not an absolute http(s) URL; using the request origin instead:",
+      configured,
+    );
+  }
+  return requestOrigin(req);
+}
+
 /** Redirect back to the settings page with the result in the fragment. */
 function sendResult(res: ServerResponse, appOrigin: string, params: Record<string, string>) {
   const target = new URL(`${appOrigin}/settings`);
@@ -64,9 +100,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
 
-  const clientId = process.env.ANILIST_CLIENT_ID?.trim();
-  const clientSecret = process.env.ANILIST_CLIENT_SECRET?.trim();
-  const appOrigin = (process.env.APP_URL?.trim() || requestOrigin(req)).replace(/\/+$/, "");
+  const clientId = envValue("ANILIST_CLIENT_ID");
+  const clientSecret = envValue("ANILIST_CLIENT_SECRET");
+  const appOrigin = resolveAppOrigin(req);
 
   if (!clientId || !clientSecret) {
     console.error(
@@ -95,7 +131,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   // Must match the value used in the authorize request and the app settings.
-  const redirectUri = process.env.ANILIST_REDIRECT_URI?.trim() || anilistRedirectUri(appOrigin);
+  const redirectUri = envValue("ANILIST_REDIRECT_URI") || anilistRedirectUri(appOrigin);
 
   try {
     const tokenRes = await fetch(ANILIST_TOKEN_URL, {
@@ -116,14 +152,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const payload = (await tokenRes.json().catch(() => ({}))) as TokenResponse;
 
     if (!tokenRes.ok || !payload.access_token) {
-      // Never log the authorization code or the client secret.
+      // Never log the authorization code, the secret, or any token. The client id
+      // is public (it ships in the bundle) and the secret length is enough to
+      // spot a truncated/empty paste.
       console.error(
         "[anilist] token exchange failed:",
         tokenRes.status,
         payload.error ?? "",
         payload.error_description ?? "",
+        `| client_id=${clientId} secret_length=${clientSecret.length}`,
       );
-      sendResult(res, appOrigin, { anilist_error: "token_exchange_failed", anilist_state: state });
+      // invalid_client has one cause worth naming in the UI: wrong credentials.
+      const reason = payload.error === "invalid_client" ? "invalid_client" : "token_exchange_failed";
+      sendResult(res, appOrigin, { anilist_error: reason, anilist_state: state });
       return;
     }
 

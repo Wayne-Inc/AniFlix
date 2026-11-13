@@ -228,6 +228,8 @@ export function describeMalError(code: string): string {
       return "The MyAnimeList login expired before it finished. Please try again.";
     case "token_exchange_failed":
       return "MyAnimeList rejected the login. Check the client ID/secret and the registered redirect URL.";
+    case "invalid_client":
+      return "MyAnimeList rejected the client credentials. Check MAL_CLIENT_ID and MAL_CLIENT_SECRET in Vercel — no quotes, no stray spaces — then redeploy.";
     case "missing_code":
       return "MyAnimeList did not return an authorization code.";
     default:

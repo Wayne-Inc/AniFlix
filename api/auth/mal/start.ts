@@ -49,6 +49,34 @@ function requestOrigin(req: IncomingMessage): string {
   return `${proto}://${host}`;
 }
 
+/** Strip quotes that come from pasting .env-style values into the dashboard. */
+function envValue(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const unquoted = raw.replace(/^["']|["']$/g, "").trim();
+  return unquoted || undefined;
+}
+
+/** Canonical origin for the callback; a bad APP_URL must never crash the flow. */
+function resolveAppOrigin(req: IncomingMessage): string {
+  const configured = envValue("APP_URL");
+  if (configured) {
+    try {
+      const parsed = new URL(configured);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        return parsed.origin;
+      }
+    } catch {
+      // fall through
+    }
+    console.error(
+      "[mal] APP_URL is not an absolute http(s) URL; using the request origin instead:",
+      configured,
+    );
+  }
+  return requestOrigin(req);
+}
+
 export default function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "GET") {
     res.statusCode = 405;
@@ -57,7 +85,7 @@ export default function handler(req: IncomingMessage, res: ServerResponse) {
     return;
   }
 
-  const clientId = process.env.MAL_CLIENT_ID?.trim();
+  const clientId = envValue("MAL_CLIENT_ID");
   if (!clientId) {
     console.error("[mal] MAL_CLIENT_ID is not set in the environment.");
     res.statusCode = 500;
@@ -65,8 +93,8 @@ export default function handler(req: IncomingMessage, res: ServerResponse) {
     return;
   }
 
-  const appOrigin = (process.env.APP_URL?.trim() || requestOrigin(req)).replace(/\/+$/, "");
-  const redirectUri = process.env.MAL_REDIRECT_URI?.trim() || malRedirectUri(appOrigin);
+  const appOrigin = resolveAppOrigin(req);
+  const redirectUri = envValue("MAL_REDIRECT_URI") || malRedirectUri(appOrigin);
 
   // 64 random bytes -> 86 base64url characters, inside MAL's 43..128 range.
   const verifier = randomBytes(64).toString("base64url");

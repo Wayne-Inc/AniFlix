@@ -96,6 +96,8 @@ the few constants it needs — `api/auth/anilist/callback.ts` mirrors
 | `redirect_uri` error page on AniList | Registered URL ≠ sent URL. Check scheme, `localhost` vs `127.0.0.1`, port, trailing slash. |
 | Card shows "Setup needed" | `VITE_ANILIST_CLIENT_ID` missing at build time. |
 | Callback returns `AniList OAuth is not configured on this deployment.` | `ANILIST_CLIENT_ID` / `ANILIST_CLIENT_SECRET` missing in the deployment's environment. |
+| "AniList rejected the client credentials" (`invalid_client` in logs) | The id/secret in Vercel don't match the app, or were pasted **with quotes**. Values are unquoted automatically now; compare `client_id` and `secret_length` in the log with the AniList app page. |
+| `TypeError: Invalid URL` at `MY_APP_URL/settings` | `APP_URL` still holds the `.env.example` placeholder. Ignored automatically now, but set it to the real origin. |
 | Callback returns the app's HTML instead of redirecting | A catch-all rewrite is shadowing `/api/*`. `vercel.json` excludes `api/` from the SPA fallback — keep it that way. |
 | "AniList rejected the login" | Client secret wrong, or the code was already used (codes are single-use), or the redirect URL differs between the two requests. |
 | "didn't match this session" (`state_mismatch`) | The flow was started in another tab, or stale `sessionStorage`. Start the connection again. |
