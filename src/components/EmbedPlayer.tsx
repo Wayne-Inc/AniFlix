@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { ArrowLeft, Settings, Loader, Minimize2, ShieldOff, CheckCircle2, Circle } from "lucide-react";
+import { ArrowLeft, Settings, Loader, Minimize2, ShieldOff, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { setWatched, isWatched } from "../lib/continue-watching-firestore";
 import { AnimeItem } from "../types/anime";
@@ -526,7 +526,7 @@ export function EmbedPlayer({ item, onClose, onBack }: EmbedPlayerProps) {
                         <p className="text-[11px] text-white/50">Mark as watched</p>
                       </div>
                       <button onClick={toggleWatched} className={`rounded px-3 py-1.5 text-xs transition ${isWatchedState ? "bg-emerald-600 text-white" : "bg-white/20 text-white/60 hover:bg-white/10 hover:text-white"}`}>
-                        {isWatchedState ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                        {isWatchedState ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>

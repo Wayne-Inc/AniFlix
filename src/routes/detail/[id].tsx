@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, CheckCircle2, Circle, ChevronRight, ChevronDown, Monitor, PlayCircle } from "lucide-react";
+import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff, ChevronRight, ChevronDown, Monitor, PlayCircle } from "lucide-react";
 import { AnimeItem, Episode, Season } from "@/types/anime";
 import { fetchAnimeDetails } from "@/services/tmdb";
 import { setWatched, isWatched } from "@/lib/continue-watching-firestore";
@@ -160,7 +160,7 @@ export function DetailPage() {
                   }`}
                   title={isWatchedState ? "Mark as Unwatched" : "Mark as Watched"}
                 >
-                  {isWatchedState ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  {isWatchedState ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { ArrowLeft, Settings, Loader, Minimize2, ShieldOff, CheckCircle2, Circle, Share2 } from "lucide-react";
+import { ArrowLeft, Settings, Loader, Minimize2, ShieldOff, Eye, EyeOff, Share2 } from "lucide-react";
 import { AnimeItem } from "@/types/anime";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -275,7 +275,7 @@ export function WatchPage() {
                         <p className="text-[11px] text-white/50">Mark as watched</p>
                       </div>
                       <button onClick={toggleWatched} className={`rounded px-3 py-1.5 text-xs transition ${isWatchedState ? "bg-emerald-600 text-white" : "bg-white/20 text-white/60 hover:bg-white/10 hover:text-white"}`}>
-                        {isWatchedState ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                        {isWatchedState ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                       </button>
                     </div>
                     <div className="mb-3 flex items-center justify-between gap-3">

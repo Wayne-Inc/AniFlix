@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, CheckCircle2, Circle } from 'lucide-react';
+import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { AnimeItem, Episode } from '../types/anime';
 import { fetchAnimeDetails } from '../services/tmdb';
 import { setWatched, isWatched } from '../lib/continue-watching-firestore';
@@ -124,7 +124,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                   }`}
                   title={isWatchedState ? 'Mark as Unwatched' : 'Mark as Watched'}
                 >
-                  {isWatchedState ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  {isWatchedState ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
               </div>
             </div>
