@@ -7,6 +7,7 @@ import { Github } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { HomePage } from "@/routes/index";
 import { AnimePage } from "@/routes/anime";
 import { MoviePage } from "@/routes/movie";
@@ -104,6 +105,7 @@ function AppInner() {
     return (
       <AuthScreen
         signInWithGoogle={signInWithGoogle}
+        signInWithGitHub={signInWithGitHub}
         signInWithEmail={signInWithEmail}
         signUpWithEmail={signUpWithEmail}
         handoffError={handoffError}
