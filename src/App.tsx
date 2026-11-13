@@ -3,7 +3,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from "@tanstack/react-query";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { Github } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
@@ -48,7 +48,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, loading, handoffError } = useAuth();
+  const { user, signInWithGoogle, signInWithGitHub, signInWithEmail, signUpWithEmail, signOut, loading, handoffError } = useAuth();
   // Track the whole location, not just the path, so query-string-only changes
   // (e.g. /watch/1?type=movie&s=1&e=2) also re-render.
   //
@@ -84,9 +84,9 @@ function AppInner() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-[#111115] text-[#e5e5e5] font-sans antialiased pt-20">
-        <Navbar user={null} loading={true} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigateTo} pathname={window.location.pathname} />
+        <Navbar user={null} loading={true} signInWithGoogle={signInWithGoogle} signInWithGitHub={signInWithGitHub} signOut={signOut} navigate={navigateTo} pathname={window.location.pathname} />
         <LoadingBar />
-        <main className="flex-1" key={locationKey}>
+        <main className="flex-1 pb-20 md:pb-0" key={locationKey}>
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -137,10 +137,10 @@ function AppInner() {
   return (
     <div className="min-h-screen flex flex-col bg-[#111115] text-[#e5e5e5] font-sans antialiased pt-20">
       <Toaster />
-      <Navbar user={user} loading={loading} signInWithGoogle={signInWithGoogle} signOut={signOut} navigate={navigateTo} pathname={pathname} />
+      <Navbar user={user} loading={loading} signInWithGoogle={signInWithGoogle} signInWithGitHub={signInWithGitHub} signOut={signOut} navigate={navigateTo} pathname={pathname} />
       {/* key remounts the page component on any URL change, so navigating
           between two detail/watch routes refetches instead of reusing state. */}
-      <main className="flex-1" key={locationKey}>{getPage(pathname)}</main>
+      <main className="flex-1 pb-20 md:pb-0" key={locationKey}>{getPage(pathname)}</main>
       <Footer />
     </div>
   );
@@ -148,12 +148,13 @@ function AppInner() {
 
 type AuthScreenProps = {
   signInWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   handoffError?: string | null;
 };
 
-function AuthScreen({ signInWithGoogle, signInWithEmail, signUpWithEmail, handoffError }: AuthScreenProps) {
+function AuthScreen({ signInWithGoogle, signInWithGitHub, signInWithEmail, signUpWithEmail, handoffError }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -232,6 +233,13 @@ function AuthScreen({ signInWithGoogle, signInWithEmail, signUpWithEmail, handof
           className="w-full px-6 py-3 rounded-lg bg-white text-zinc-950 font-bold hover:bg-zinc-200 transition-colors"
         >
           Sign in with Google
+        </button>
+        <button
+          onClick={signInWithGitHub}
+          className="mt-3 w-full px-6 py-3 rounded-lg bg-zinc-900 border border-zinc-700 text-white font-bold hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+        >
+          <Github className="w-5 h-5" />
+          <span>Sign in with GitHub</span>
         </button>
       </form>
     </div>

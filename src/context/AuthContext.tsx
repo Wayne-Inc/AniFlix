@@ -7,7 +7,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  linkWithCredential,
+  fetchSignInMethodsForEmail,
   GoogleAuthProvider,
+  GithubAuthProvider,
   type User,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
@@ -23,6 +26,7 @@ type AuthContextType = {
   selectedProfile: any | null;
   handoffError: string | null;
   signInWithGoogle: () => Promise<void>;
+  signInWithGitHub: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -47,6 +51,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
+  }, []);
+
+  const signInWithGitHub = useCallback(async () => {
+    const provider = new GithubAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      // User dismissed the GitHub popup — treat as a cancellation, not an error.
+      if (error?.code === "auth/popup-closed-by-user") return;
+
+      // The email is already tied to a different provider (email/password or
+      // Google). Link the GitHub credential to that existing account so both
+      // providers sign into the same profile.
+      if (error?.code === "auth/account-exists-with-different-credential") {
+        const email = error.customData?.email;
+        const credential = GithubAuthProvider.credentialFromError(error);
+        if (email && credential) {
+          try {
+            const methods = await fetchSignInMethodsForEmail(auth, email);
+            if (methods.includes("password")) {
+              throw new Error(
+                "An account with this email already exists. Sign in with your email and password first, then link GitHub in Account settings.",
+              );
+            }
+            if (methods.includes("google.com")) {
+              throw new Error(
+                "An account with this email already exists via Google. Sign in with Google first, then link GitHub in Account settings.",
+              );
+            }
+          } catch (linkedErr) {
+            // Re-throw our friendly message; surface anything else verbatim.
+            throw linkedErr instanceof Error && linkedErr.message
+              ? linkedErr
+              : error;
+          }
+          // No known sign-in method on file — link directly so the GitHub
+          // identity is attached to the existing account.
+          const existingUser = auth.currentUser;
+          if (existingUser) {
+            await linkWithCredential(existingUser, credential);
+            return;
+          }
+        }
+      }
+      throw error;
+    }
   }, []);
 
   const signInWithEmail = useCallback(
@@ -152,6 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     selectedProfile,
     handoffError,
     signInWithGoogle,
+    signInWithGitHub,
     signInWithEmail,
     signUpWithEmail,
     signOut,
