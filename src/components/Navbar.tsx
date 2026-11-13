@@ -212,6 +212,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Clock className="w-3.5 h-3.5 text-orange-400" />
                   <span>Watch History</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    navigate("/mylist");
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                >
+                  <Bookmark className="w-3.5 h-3.5 text-rose-400" />
+                  <span>My List</span>
+                </button>
                 <div className="border-t border-zinc-800 my-1"></div>
                 {loading ? (
                   <div className="w-full px-3 py-2 text-xs text-zinc-500">
@@ -289,15 +299,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <TrendingUp className="w-4 h-4" />
           <span className="leading-none">Trending</span>
-        </button>
-        <button
-          onClick={() => navigate("/mylist")}
-          className={`flex flex-col items-center gap-1 px-2 py-1 min-w-0 rounded cursor-pointer transition-colors ${
-            isActive("/mylist") ? "text-rose-400 bg-rose-400/20" : "text-zinc-400 hover:text-white"
-          }`}
-        >
-          <Bookmark className="w-4 h-4" />
-          <span className="leading-none">My List</span>
         </button>
         <button
           onClick={() => navigate("/history")}

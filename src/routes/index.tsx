@@ -82,6 +82,7 @@ export function HomePage() {
             onToggleMyList={() => {}}
             isInMyList={() => false}
             aspectRatio="backdrop"
+            cardSize="large"
           />
           <AnimeRow
             title="Acclaimed Anime Films"
@@ -92,6 +93,7 @@ export function HomePage() {
             onToggleMyList={() => {}}
             isInMyList={() => false}
             aspectRatio="poster"
+            cardSize="large"
           />
         </div>
       </main>

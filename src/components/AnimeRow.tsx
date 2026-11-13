@@ -13,6 +13,7 @@ interface AnimeRowProps {
   onToggleMyList: (item: AnimeItem) => void;
   isInMyList: (id: number) => boolean;
   aspectRatio?: 'poster' | 'backdrop';
+  cardSize?: 'compact' | 'large';
 }
 
 export const AnimeRow: React.FC<AnimeRowProps> = ({
@@ -24,6 +25,7 @@ export const AnimeRow: React.FC<AnimeRowProps> = ({
   onToggleMyList,
   isInMyList,
   aspectRatio = 'poster',
+  cardSize = 'compact',
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +86,7 @@ export const AnimeRow: React.FC<AnimeRowProps> = ({
               onToggleMyList={onToggleMyList}
               isInMyList={isInMyList}
               aspectRatio={aspectRatio}
+              cardSize={cardSize}
             />
           ))}
         </div>

@@ -17,7 +17,7 @@ export const Footer: React.FC = () => {
           <span className="text-zinc-600">·</span>
           <span>StreamFlix Anime Edition</span>
         </div>
-        <div className="flex items-center gap-6 text-zinc-400">
+        <div className="hidden md:flex items-center gap-6 text-zinc-400">
           {LINKS.map(({ label, href }) => (
             <a
               key={href}

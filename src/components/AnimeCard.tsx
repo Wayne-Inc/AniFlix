@@ -49,6 +49,7 @@ interface AnimeCardProps {
   onToggleMyList: (item: AnimeItem) => void;
   isInMyList: (id: number) => boolean;
   aspectRatio?: 'poster' | 'backdrop';
+  cardSize?: 'compact' | 'large';
 }
 
 export const AnimeCard: React.FC<AnimeCardProps> = ({
@@ -58,6 +59,7 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({
   onToggleMyList,
   isInMyList,
   aspectRatio = 'poster',
+  cardSize = 'compact',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -77,8 +79,12 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({
       <div
         className={`relative overflow-hidden rounded-md bg-zinc-900 border border-zinc-800/80 shadow-md transition-all duration-300 ${
           aspectRatio === 'backdrop'
-            ? 'w-64 sm:w-72 aspect-[16/9]'
-            : 'w-36 sm:w-44 md:w-48 aspect-[2/3]'
+            ? cardSize === 'large'
+              ? 'w-80 sm:w-96 md:w-[360px] aspect-[16/9]'
+              : 'w-64 sm:w-72 aspect-[16/9]'
+            : cardSize === 'large'
+              ? 'w-48 sm:w-60 md:w-72 aspect-[2/3]'
+              : 'w-36 sm:w-44 md:w-48 aspect-[2/3]'
         } ${isHovered ? 'scale-105 shadow-2xl border-zinc-700' : ''}`}
       >
         {!imageError && imgSrc ? (
