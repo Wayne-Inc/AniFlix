@@ -50,6 +50,17 @@ function makeDocId(itemId: number, season?: number, episode?: number) {
   return season != null && episode != null ? `${itemId}:S${season}E${episode}` : String(itemId);
 }
 
+// Helper to remove undefined values from an object (Firestore doesn't accept undefined)
+function cleanForFirestore<T extends Record<string, unknown>>(obj: T): T {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned as T;
+}
+
 export async function saveProgressToFirestore(
   item: AnimeItem,
   progress: number,
@@ -65,7 +76,7 @@ export async function saveProgressToFirestore(
   const ratio = progress / duration;
   const docId = `${user.uid}_${profileId}_${makeDocId(item.id, season, episode)}`;
   if (ratio >= 0.95) {
-    await setDoc(doc(db, CW_COLLECTION, docId), {
+    await setDoc(doc(db, CW_COLLECTION, docId), cleanForFirestore({
       id: docId,
       userId: user.uid,
       profileId,
@@ -92,11 +103,11 @@ export async function saveProgressToFirestore(
       episode,
       watched: true,
       type: item.type,
-    }, { merge: true });
+    }), { merge: true });
     return;
   }
   if (progress <= 5) return;
-  const data: FirestoreContinueItem = {
+  const data = cleanForFirestore({
     id: docId,
     userId: user.uid,
     profileId,
@@ -123,7 +134,7 @@ export async function saveProgressToFirestore(
     episode,
     watched: false,
     type: item.type,
-  };
+  });
   await setDoc(doc(db, CW_COLLECTION, docId), data);
 }
 
@@ -167,7 +178,7 @@ export async function setWatched(
     return;
   }
 
-  await setDoc(doc(db, CW_COLLECTION, docId), {
+  await setDoc(doc(db, CW_COLLECTION, docId), cleanForFirestore({
     id: docId,
     userId: user.uid,
     profileId,
@@ -194,7 +205,7 @@ export async function setWatched(
     episode,
     watched: true,
     type: item.type,
-  }, { merge: true });
+  }), { merge: true });
 }
 
 /** Kept for call sites that only ever mark something watched. */
