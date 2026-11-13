@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getMyListFromFirestore } from "@/lib/my-list-firestore";
 import { useState, useEffect } from "react";
 import { AnimeItem } from "@/types/anime";
+import { navigate } from "@/lib/navigation";
 
 export function MyListPage() {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -48,7 +49,7 @@ export function MyListPage() {
         ) : (
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
             {list.map((m) => (
-              <AnimeCard key={m.id} item={m} onSelect={(item) => { window.location.href = '/detail/' + item.id + '?type=' + item.type; }} onPlay={() => {}} onToggleMyList={() => {}} isInMyList={() => true} />
+              <AnimeCard key={m.id} item={m} onSelect={(item) => { navigate('/detail/' + item.id + '?type=' + item.type); }} onPlay={() => {}} onToggleMyList={() => {}} isInMyList={() => true} />
             ))}
           </div>
         )}

@@ -33,7 +33,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, loading } = useAuth();
+  const { user, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut, loading, handoffError } = useAuth();
   const [pathname, setPathname] = useState(window.location.pathname);
 
   useEffect(() => {
@@ -65,6 +65,7 @@ function AppInner() {
         signInWithGoogle={signInWithGoogle}
         signInWithEmail={signInWithEmail}
         signUpWithEmail={signUpWithEmail}
+        handoffError={handoffError}
       />
     );
   }
@@ -107,13 +108,14 @@ type AuthScreenProps = {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
+  handoffError?: string | null;
 };
 
-function AuthScreen({ signInWithGoogle, signInWithEmail, signUpWithEmail }: AuthScreenProps) {
+function AuthScreen({ signInWithGoogle, signInWithEmail, signUpWithEmail, handoffError }: AuthScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(handoffError ?? "");
   const [isSignUp, setIsSignUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

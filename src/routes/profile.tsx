@@ -1,6 +1,7 @@
 import { Lock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
+import { navigate } from "@/lib/navigation";
 import {
   ensureUserHasProfile,
   profileToSelected,
@@ -28,7 +29,7 @@ export function ProfilePage() {
 
   const choose = (p: Profile) => {
     selectProfile(profileToSelected(p));
-    window.location.href = "/";
+    navigate("/");
   };
 
   return (

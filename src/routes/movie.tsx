@@ -5,6 +5,7 @@ import { AnimeCard } from "@/components/AnimeCard";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useCallback } from "react";
 import { AnimeItem } from "@/types/anime";
+import { navigate } from "@/lib/navigation";
 
 export function MoviePage() {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -63,8 +64,8 @@ export function MoviePage() {
             <AnimeCard
               key={item.id}
               item={item}
-              onSelect={(item) => { window.location.href = '/detail/' + item.id + '?type=' + item.type; }}
-              onPlay={() => { window.location.href = '/watch/' + item.id; }}
+              onSelect={(item) => { navigate('/detail/' + item.id + '?type=' + item.type); }}
+              onPlay={() => { navigate('/watch/' + item.id); }}
               onToggleMyList={() => {}}
               isInMyList={() => false}
             />

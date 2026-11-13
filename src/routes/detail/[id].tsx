@@ -7,6 +7,7 @@ import { setMyListInFirestore, removeMyListFromFirestore, getMyListFromFirestore
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
+import { navigate } from "@/lib/navigation";
 
 export function DetailPage() {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -72,8 +73,7 @@ export function DetailPage() {
 
   const playEpisode = (seasonNumber: number, episode: Episode) => {
     if (!item) return;
-    window.location.href =
-      '/watch/' + item.id + '?type=' + item.type + '&s=' + seasonNumber + '&e=' + episode.episodeNumber;
+    navigate('/watch/' + item.id + '?type=' + item.type + '&s=' + seasonNumber + '&e=' + episode.episodeNumber);
   };
 
   return (
@@ -133,7 +133,7 @@ export function DetailPage() {
               )}
               <div className="flex items-center gap-3 flex-wrap">
                 <button
-                  onClick={() => { window.location.href = '/watch/' + item.id + '?type=' + item.type + (item.episodesCount ? '&s=1&e=1' : ''); }}
+                  onClick={() => { navigate('/watch/' + item.id + '?type=' + item.type + (item.episodesCount ? '&s=1&e=1' : '')); }}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 font-bold text-sm transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
                 >
                   <Play className="w-4 h-4 fill-current text-zinc-950" />

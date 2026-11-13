@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimeItem } from '../types/anime';
 import { AnimeCard } from './AnimeCard';
+import { navigate } from "@/lib/navigation";
 
 interface AnimeRowProps {
   title: string;
@@ -53,7 +54,7 @@ export const AnimeRow: React.FC<AnimeRowProps> = ({
             </span>
           )}
         </div>
-        <span className="text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer" onClick={() => window.location.href = '/search'}>
+        <span className="text-xs font-semibold text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer" onClick={() => navigate('/search')}>
           Explore All ({items.length})
         </span>
       </div>

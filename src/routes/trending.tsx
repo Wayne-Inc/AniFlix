@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { fetchTmdbAnimeTVMultiple, fetchTmdbAnimeMoviesMultiple } from "@/services/tmdb";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AnimeItem } from "@/types/anime";
+import { navigate } from "@/lib/navigation";
 
 export function TrendingPage() {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -50,8 +51,8 @@ export function TrendingPage() {
               </div>
               <AnimeCard
                 item={item}
-                onSelect={(item) => { window.location.href = '/detail/' + item.id + '?type=' + item.type; }}
-                onPlay={() => { window.location.href = '/watch/' + item.id + '?type=' + item.type + (item.episodesCount ? '&s=1&e=1' : ''); }}
+                onSelect={(item) => { navigate('/detail/' + item.id + '?type=' + item.type); }}
+                onPlay={() => { navigate('/watch/' + item.id + '?type=' + item.type + (item.episodesCount ? '&s=1&e=1' : '')); }}
                 onToggleMyList={() => {}}
                 isInMyList={() => false}
               />

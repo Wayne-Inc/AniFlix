@@ -1,3 +1,13 @@
+import { navigate } from "@/lib/navigation";
+
+const LINKS = [
+  { label: "Home", href: "/" },
+  { label: "Anime Series", href: "/anime" },
+  { label: "Movies", href: "/movie" },
+  { label: "Trending", href: "/trending" },
+  { label: "Watchlist", href: "/mylist" },
+];
+
 export const Footer: React.FC = () => {
   return (
     <footer className="border-t border-zinc-800/80 bg-[#0d0d10] py-8 px-4 sm:px-6 lg:px-8 text-xs text-zinc-500">
@@ -8,21 +18,21 @@ export const Footer: React.FC = () => {
           <span>StreamFlix Anime Edition</span>
         </div>
         <div className="flex items-center gap-6 text-zinc-400">
-          <a href="/" className="hover:text-white transition-colors cursor-pointer">
-            Home
-          </a>
-          <a href="/anime" className="hover:text-white transition-colors cursor-pointer">
-            Anime Series
-          </a>
-          <a href="/movie" className="hover:text-white transition-colors cursor-pointer">
-            Movies
-          </a>
-          <a href="/trending" className="hover:text-white transition-colors cursor-pointer">
-            Trending
-          </a>
-          <a href="/mylist" className="hover:text-white transition-colors cursor-pointer">
-            Watchlist
-          </a>
+          {LINKS.map(({ label, href }) => (
+            <a
+              key={href}
+              href={href}
+              onClick={(e) => {
+                // Keep modifier clicks (new tab/window) as real link behaviour.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                navigate(href);
+              }}
+              className="hover:text-white transition-colors cursor-pointer"
+            >
+              {label}
+            </a>
+          ))}
         </div>
       </div>
     </footer>

@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithCustomToken,
   signOut as firebaseSignOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -13,12 +14,14 @@ import { auth } from "../lib/firebase";
 import { getUserProfiles, ensureUserHasProfile } from "../lib/profiles";
 import { setSelectedProfile, clearSelectedProfile } from "../lib/selected-profile";
 import { getMyListFromFirestore } from "../lib/my-list-firestore";
+import { takeStreamFlixHandoffToken } from "../lib/streamflix-handoff";
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   profiles: any[];
   selectedProfile: any | null;
+  handoffError: string | null;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
@@ -34,14 +37,12 @@ const SF_AUTH_FLAG = "sf:auth";
 const SF_SELECTED_SESSION_KEY = "sf:selectedProfile";
 const SF_SELECTED_PERSIST_KEY = "sf:selectedProfile:persist";
 
-// URL search param names that indicate the user arrived from StreamFlix.
-const STREAMFLIX_URL_PARAMS = ["from", "streamflix", "sf"];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfileState] = useState<any | null>(null);
+  const [handoffError, setHandoffError] = useState<string | null>(null);
 
   const signInWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
@@ -96,33 +97,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    // Detect arrival from StreamFlix via URL search params.
-    let isStreamflixRedirect = false;
-    try {
-      isStreamflixRedirect = STREAMFLIX_URL_PARAMS.some((p) =>
-        new URLSearchParams(window.location.search).has(p),
-      );
-    } catch {}
-    // Detect StreamFlix signed-in flag in localStorage.
-    let hasStreamflixAuthFlag = false;
-    try {
-      hasStreamflixAuthFlag = localStorage.getItem(SF_AUTH_FLAG) === "1";
-    } catch {}
+    let cancelled = false;
+
+    // StreamFlix mints a short-lived Firebase custom token and hands it over in
+    // the URL fragment. Consume it exactly once, before the first auth-state
+    // callback, so the user lands on AniFlix already signed in.
+    const handoffToken = takeStreamFlixHandoffToken();
 
     const unsub = onAuthStateChanged(auth, async (u) => {
+      if (cancelled) return;
       setUser(u);
-      setLoading(false);
 
       if (u) {
-        // Auto-login: user is already signed in to StreamFlix (shared Firebase project).
+        // Shared Firebase project: the same account is valid on both apps.
         await refreshProfiles();
+        if (!cancelled) setLoading(false);
       } else {
         setProfiles([]);
         setSelectedProfileState(null);
         clearSelectedProfile();
+        // Keep the loading screen up while the handoff sign-in is in flight so
+        // the sign-in form never flashes before it completes.
+        if (!handoffToken) setLoading(false);
       }
     });
-    return () => unsub();
+
+    if (handoffToken) {
+      signInWithCustomToken(auth, handoffToken)
+        .then(() => {
+          try {
+            // Keep the shared StreamFlix signed-in flag in sync so signing out
+            // of either app clears both.
+            localStorage.setItem(SF_AUTH_FLAG, "1");
+          } catch {}
+        })
+        .catch((error) => {
+          console.warn("[AniFlix] StreamFlix handoff sign-in failed:", error);
+          if (cancelled) return;
+          setHandoffError("We couldn't sign you in from StreamFlix. Please sign in below.");
+          setLoading(false);
+        });
+    }
+
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, [refreshProfiles]);
 
   const value = {
@@ -130,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     profiles,
     selectedProfile,
+    handoffError,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,

@@ -1,0 +1,5 @@
+# SPA fallback for Cloudflare Pages / Netlify.
+# The app is client-routed (/detail/:id, /watch/:id, ...), so any request that
+# does not match a real file must serve index.html instead of a 404.
+# Vercel uses vercel.json for the same purpose.
+/*    /index.html   200
