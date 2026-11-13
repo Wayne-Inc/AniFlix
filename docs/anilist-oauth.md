@@ -62,10 +62,17 @@ Settings card "Connect"
 
 Files:
 
-- `src/lib/anilist-config.ts` — callback path, redirect-URI builder, authorize URL. Shared by client and server.
+- `src/lib/anilist-config.ts` — callback path, redirect-URI builder, authorize URL (browser side).
 - `src/lib/anilist-auth.ts` — start/consume/disconnect, token + viewer storage, `Viewer` query.
 - `api/auth/anilist/callback.ts` — the Vercel Node function (code→token exchange).
 - `src/components/ConnectedAccounts.tsx` — the cards.
+
+**Serverless constraint:** nothing under `api/` may import from `src/` (or from
+another `api/` file with an extensionless specifier). Vercel emits ESM and Node's
+loader does not resolve those, so the deploy fails with
+`ERR_MODULE_NOT_FOUND`. Each function is self-contained and keeps a local copy of
+the few constants it needs — `api/auth/anilist/callback.ts` mirrors
+`src/lib/anilist-config.ts`. Change both together.
 
 ## 5. Security notes
 

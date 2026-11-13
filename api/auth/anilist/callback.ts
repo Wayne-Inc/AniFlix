@@ -2,23 +2,28 @@
 //
 // Route: GET /api/auth/anilist/callback?code=...&state=...
 //
-// AniList's authorization-code exchange requires the client secret, so it cannot
-// happen in the browser. This function performs the exchange and then hands the
-// access token back to the SPA in the URL *fragment*, which the browser never
-// sends to a server, never includes in a Referer, and never writes to an access
-// log. The SPA reads it, stores it locally, and strips it from the address bar.
+// IMPORTANT: this file is deliberately self-contained. Vercel transpiles it to
+// ESM and Node's loader does not resolve extensionless imports, so any import of
+// a TypeScript file outside api/ fails at runtime with ERR_MODULE_NOT_FOUND.
+// The constants below mirror src/lib/anilist-config.ts — change both together.
 //
-// Redirect URI registered at https://anilist.co/settings/developer must be
-// exactly: <origin>/api/auth/anilist/callback
+// AniList's authorization-code exchange requires the client secret, so it cannot
+// happen in the browser. This function performs the exchange and hands the access
+// token back to the SPA in the URL fragment, which the browser never sends to a
+// server, never includes in a Referer, and never writes to an access log.
 //
 // Required environment (Vercel Project Settings -> Environment Variables):
 //   ANILIST_CLIENT_ID, ANILIST_CLIENT_SECRET   (never prefixed with VITE_)
 //   APP_URL (optional) — canonical origin, e.g. https://ani.streamflix.dpdns.org
 import type { IncomingMessage, ServerResponse } from "node:http";
 import process from "node:process";
-import { anilistRedirectUri } from "../../../src/lib/anilist-config";
 
 const ANILIST_TOKEN_URL = "https://anilist.co/api/v2/oauth/token";
+const ANILIST_CALLBACK_PATH = "/api/auth/anilist/callback";
+
+function anilistRedirectUri(origin: string): string {
+  return `${origin.replace(/\/+$/, "")}${ANILIST_CALLBACK_PATH}`;
+}
 
 type TokenResponse = {
   access_token?: string;

@@ -2,6 +2,10 @@
 //
 // GET /api/auth/mal/start
 //
+// Self-contained on purpose: Vercel emits ESM and Node cannot resolve imports of
+// TypeScript files outside api/, so the constants below mirror
+// src/lib/mal-config.ts instead of importing them. Keep both in sync.
+//
 // MAL requires PKCE (plain method). The verifier has to reach the callback, but
 // putting it in `state` would expose it in the address bar and history, so it is
 // stored in a short-lived HttpOnly cookie instead. The callback reads it, checks
@@ -9,10 +13,32 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import process from "node:process";
-import { buildMalAuthorizeUrl, malRedirectUri } from "../../../src/lib/mal-config";
 
 const COOKIE_NAME = "mal_oauth";
 const COOKIE_MAX_AGE = 600;
+const MAL_AUTHORIZE_URL = "https://myanimelist.net/v1/oauth2/authorize";
+const MAL_CALLBACK_PATH = "/api/auth/mal/callback";
+
+function malRedirectUri(origin: string): string {
+  return `${origin.replace(/\/+$/, "")}${MAL_CALLBACK_PATH}`;
+}
+
+function buildMalAuthorizeUrl(options: {
+  clientId: string;
+  redirectUri: string;
+  state: string;
+  codeChallenge: string;
+}): string {
+  const url = new URL(MAL_AUTHORIZE_URL);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", options.clientId);
+  url.searchParams.set("redirect_uri", options.redirectUri);
+  url.searchParams.set("state", options.state);
+  // MAL only supports the `plain` challenge method: challenge === verifier.
+  url.searchParams.set("code_challenge", options.codeChallenge);
+  url.searchParams.set("code_challenge_method", "plain");
+  return url.toString();
+}
 
 function requestOrigin(req: IncomingMessage): string {
   const host = (Array.isArray(req.headers.host) ? req.headers.host[0] : req.headers.host) ?? "localhost";

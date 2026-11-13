@@ -42,6 +42,13 @@ The PKCE verifier never touches the address bar: it lives in the `HttpOnly`
 cookie between `start` and `callback`. State is validated server-side, so a
 callback whose state does not match the cookie is rejected before any token call.
 
+**Serverless constraint:** nothing under `api/` may import from `src/` (or from
+another `api/` file with an extensionless specifier) — Vercel emits ESM and Node's
+loader cannot resolve those, producing `ERR_MODULE_NOT_FOUND` at runtime. Every
+function here is self-contained and mirrors the constants in
+`src/lib/mal-config.ts`; change both together. The same applies to
+`api/mal.ts`.
+
 ## 4. Tokens
 
 - Access token: **1 hour**. Refresh token: **1 month**.

@@ -1,8 +1,12 @@
 // MyAnimeList API proxy — Vercel Node function.
 //
-// The MAL API sends no CORS headers, so the browser cannot call it directly.
-// This endpoint forwards a small, fixed set of operations with the caller's own
-// bearer token. It is a proxy, not an open relay: only these ops exist, only
+// Self-contained on purpose: Vercel emits ESM and Node cannot resolve imports of
+// TypeScript files outside api/, so helper functions and the status list are local
+// copies rather than shared modules.
+//
+// The MAL API sends no CORS headers, so the browser cannot call it directly. This
+// endpoint forwards a small, fixed set of operations with the caller's own bearer
+// token. It is a proxy, not an open relay: only these ops exist, only
 // api.myanimelist.net is targeted, and the token is never stored or logged.
 //
 //   GET  /api/mal?op=me      -> /v2/users/@me
@@ -10,11 +14,55 @@
 //   POST /api/mal?op=update  { malId, status, num_watched_episodes }
 import type { IncomingMessage, ServerResponse } from "node:http";
 import process from "node:process";
-import { bearerToken, json, readJsonBody } from "./_lib/http";
-import { isValidMalStatus } from "../src/lib/mal-config";
 
 const MAL_API = "https://api.myanimelist.net/v2";
 const MAX_PAGES = 10;
+const MAL_STATUSES = ["watching", "completed", "on_hold", "dropped", "plan_to_watch"] as const;
+
+type MalStatus = (typeof MAL_STATUSES)[number];
+
+function isValidMalStatus(value: string): value is MalStatus {
+  return (MAL_STATUSES as readonly string[]).includes(value);
+}
+
+function json(res: ServerResponse, status: number, payload: unknown) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify(payload));
+}
+
+function readJsonBody(req: IncomingMessage, limitBytes = 4096): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > limitBytes) {
+        reject(new Error("body too large"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"));
+      } catch {
+        reject(new Error("invalid json"));
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function bearerToken(req: IncomingMessage): string | null {
+  const raw = req.headers.authorization;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (!value) return null;
+  const match = /^Bearer\s+(\S+)$/i.exec(value);
+  return match ? match[1] : null;
+}
 
 function malHeaders(token: string): Record<string, string> {
   const headers: Record<string, string> = {

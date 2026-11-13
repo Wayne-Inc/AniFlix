@@ -2,15 +2,24 @@
 //
 // GET /api/auth/mal/callback?code=...&state=...
 //
+// Self-contained on purpose: Vercel emits ESM and Node cannot resolve imports of
+// TypeScript files outside api/, so the constants below mirror
+// src/lib/mal-config.ts instead of importing them. Keep both in sync.
+//
 // Reads the PKCE verifier from the HttpOnly cookie set by /api/auth/mal/start,
 // checks the echoed state, exchanges the code, and hands the tokens back to the
 // SPA in the URL fragment. MAL's token endpoint sends no CORS headers, so this
 // exchange cannot happen in the browser.
 import type { IncomingMessage, ServerResponse } from "node:http";
 import process from "node:process";
-import { MAL_TOKEN_URL, malRedirectUri } from "../../../src/lib/mal-config";
 
+const MAL_TOKEN_URL = "https://myanimelist.net/v1/oauth2/token";
+const MAL_CALLBACK_PATH = "/api/auth/mal/callback";
 const COOKIE_NAME = "mal_oauth";
+
+function malRedirectUri(origin: string): string {
+  return `${origin.replace(/\/+$/, "")}${MAL_CALLBACK_PATH}`;
+}
 
 type MalTokenResponse = {
   token_type?: string;
