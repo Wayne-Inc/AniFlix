@@ -10,7 +10,7 @@ const LINKS = [
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="border-t border-zinc-800/80 bg-[#0d0d10] py-8 px-4 sm:px-6 lg:px-8 text-xs text-zinc-500">
+    <footer className="border-t border-zinc-800/80 bg-[#0d0d10] py-8 px-4 sm:px-6 lg:px-8 text-xs text-zinc-500 pb-28 md:pb-0">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           <span className="font-display text-2xl text-[#e50914] tracking-wider">ANIFLIX</span>

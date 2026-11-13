@@ -309,7 +309,7 @@ export function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#111115] text-[#e5e5e5] font-sans antialiased">
-      <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:py-10 sm:px-6 lg:px-8 lg:py-14">
         <header className="max-w-3xl">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Account Settings</h1>
           <p className="mt-2 text-sm text-zinc-400">
@@ -318,7 +318,7 @@ export function SettingsPage() {
           </p>
         </header>
 
-        <div className="mt-8 grid gap-6 lg:mt-10 lg:grid-cols-12">
+        <div className="mt-6 grid gap-6 lg:mt-10 lg:grid-cols-12">
           {/* Main column */}
           <div className="space-y-6 lg:col-span-7 xl:col-span-8">
             <Section
@@ -591,7 +591,7 @@ export function SettingsPage() {
 
       {confirmDeleteOpen && (
         <div className="fixed inset-0 z-[60] grid place-items-center bg-black/80 p-4">
-          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-[#18181f] p-6 text-center shadow-2xl">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-xl border border-zinc-800 bg-[#18181f] p-4 sm:p-6 text-center shadow-2xl">
             <Trash2 className="mx-auto mb-4 size-10 text-red-500" />
             <h2 className="mb-1 text-xl font-semibold">Delete Account</h2>
             <p className="mb-6 text-sm text-zinc-400">
