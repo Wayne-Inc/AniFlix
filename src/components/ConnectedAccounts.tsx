@@ -90,7 +90,7 @@ function ProviderCard({
   footer: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+    <div className="flex flex-col rounded-lg border border-zinc-800 bg-zinc-900/40 p-5">
       <div className="flex items-start gap-3">
         <div
           className={`grid size-10 shrink-0 place-items-center rounded-md bg-gradient-to-br ${markClass} text-base font-black text-white`}
@@ -522,15 +522,20 @@ export function ConnectedAccounts() {
   );
 
   return (
-    <div className="border-t border-zinc-800 pt-6">
-      <h3 className="text-sm font-semibold text-zinc-300 mb-4 flex items-center gap-2">
-        <Link2 className="size-4" /> Connected accounts
-      </h3>
-      <p className="text-xs text-zinc-500 mb-4">
-        Link a tracking service so your watch progress stays in sync.
-      </p>
+    <section className="rounded-xl border border-zinc-800 bg-[#17171c]/80 p-5 sm:p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-800/80 text-zinc-300">
+          <Link2 className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-zinc-100">Connected accounts</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Sign in to AniList or MyAnimeList here — your lists stay in sync with AniFlix.
+          </p>
+        </div>
+      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <ProviderCard
           mark="A"
           markClass="from-[#02a9ff] to-[#0b6fd6]"
@@ -568,6 +573,6 @@ export function ConnectedAccounts() {
             : "Connecting only grants AniFlix access to the lists on your tracker account."}
         </p>
       )}
-    </div>
+    </section>
   );
 }

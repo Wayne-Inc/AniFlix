@@ -3,7 +3,7 @@ import { Plus, Check, Heart, Star } from 'lucide-react';
 import { AnimeItem } from '../types/anime';
 
 /**
- * Compact AniList state for the card corner. Only rendered after a sync has
+ * Compact tracker state for the card corner. Only rendered after a sync has
  * recorded a status, so unsynced items stay visually unchanged.
  */
 function anilistBadge(item: AnimeItem): string {
@@ -22,6 +22,23 @@ function anilistBadge(item: AnimeItem): string {
       return 'DROPPED';
     default:
       return item.anilistStatus ?? '';
+  }
+}
+
+function malBadge(item: AnimeItem): string {
+  switch (item.malStatus) {
+    case 'completed':
+      return 'MAL DONE';
+    case 'watching':
+      return `MAL ${item.malProgress ?? 0} EP`;
+    case 'plan_to_watch':
+      return 'MAL PLAN';
+    case 'on_hold':
+      return 'MAL HOLD';
+    case 'dropped':
+      return 'MAL DROP';
+    default:
+      return item.malStatus ?? '';
   }
 }
 
@@ -96,13 +113,25 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({
           )}
         </div>
 
-        {item.anilistStatus && (
-          <span
-            className="absolute top-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-sky-300 shadow ring-1 ring-sky-400/30"
-            title={`AniList: ${item.anilistStatus}${item.anilistProgress != null ? ` · ${item.anilistProgress} episodes` : ''}`}
-          >
-            {anilistBadge(item)}
-          </span>
+        {(item.anilistStatus || item.malStatus) && (
+          <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+            {item.anilistStatus && (
+              <span
+                className="rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-sky-300 shadow ring-1 ring-sky-400/30"
+                title={`AniList: ${item.anilistStatus}${item.anilistProgress != null ? ` · ${item.anilistProgress} episodes` : ''}`}
+              >
+                {anilistBadge(item)}
+              </span>
+            )}
+            {item.malStatus && (
+              <span
+                className="rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-indigo-300 shadow ring-1 ring-indigo-400/30"
+                title={`MyAnimeList: ${item.malStatus}${item.malProgress != null ? ` · ${item.malProgress} episodes` : ''}`}
+              >
+                {malBadge(item)}
+              </span>
+            )}
+          </div>
         )}
 
         {/* Hover Action Overlay (My List + title info) */}
