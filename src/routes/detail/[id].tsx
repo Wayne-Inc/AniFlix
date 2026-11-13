@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff, ChevronRight, ChevronDown, Monitor, PlayCircle } from "lucide-react";
+import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, Eye, EyeOff, ChevronRight, ChevronDown, Monitor, PlayCircle, Share2 } from "lucide-react";
 import { AnimeItem, Episode, Season } from "@/types/anime";
 import { fetchAnimeDetails } from "@/services/tmdb";
 import { setWatched, isWatched } from "@/lib/continue-watching-firestore";
@@ -72,6 +72,25 @@ export function DetailPage() {
     }
   };
 
+  const handleShare = async () => {
+    if (!item) return;
+    const shareData = {
+      title: item.title,
+      text: `Check out "${item.title}" on AniFlix`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {}
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard");
+      } catch {}
+    }
+  };
+
   const playEpisode = (seasonNumber: number, episode: Episode) => {
     if (!item) return;
     navigate('/watch/' + item.id + '?type=' + item.type + '&s=' + seasonNumber + '&e=' + episode.episodeNumber);
@@ -100,6 +119,7 @@ export function DetailPage() {
         </div>
       ) : (
         <>
+          {/* Full-width Hero/Backdrop */}
           <div className="relative w-full h-[60vh] sm:h-[70vh] overflow-hidden">
             {item.backdropPath && (
               <img
@@ -118,66 +138,78 @@ export function DetailPage() {
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#111115] via-[#111115]/60 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 pb-10">
-              <button
-                onClick={() => window.history.back()}
-                className="absolute top-4 left-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
-                title="Back"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg mb-2">
-                {item.title}
-              </h1>
-              {item.japaneseTitle && item.japaneseTitle !== item.title && (
-                <p className="text-sm text-zinc-400 italic mb-3">{item.japaneseTitle}</p>
-              )}
-              <div className="flex items-center gap-3 flex-wrap">
-                <button
-                  onClick={() => { navigate('/watch/' + item.id + '?type=' + item.type + (item.episodesCount ? '&s=1&e=1' : '')); }}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 font-bold text-sm transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
-                >
-                  <Play className="w-4 h-4 fill-current text-zinc-950" />
-                  Play
-                </button>
-                <button
-                  onClick={toggleMyList}
-                  className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
-                    isInMyList
-                      ? "bg-red-600 border-red-500 text-white"
-                      : "bg-zinc-900/80 border-zinc-600 text-zinc-200 hover:border-zinc-400"
-                  }`}
-                  title={isInMyList ? "Remove from My List" : "Add to My List"}
-                >
-                  {isInMyList ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                </button>
-                <button
-                  onClick={toggleWatched}
-                  className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
-                    isWatchedState
-                      ? "bg-emerald-600 border-emerald-500 text-white"
-                      : "bg-zinc-900/80 border-zinc-600 text-zinc-200 hover:border-zinc-400"
-                  }`}
-                  title={isWatchedState ? "Mark as Unwatched" : "Mark as Watched"}
-                >
-                  {isWatchedState ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={() => window.history.back()}
+              className="absolute top-4 left-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors cursor-pointer"
+              title="Back"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Main Content Grid - Title and actions aligned with description/cast/seasons */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 pb-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2 space-y-6">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-300">
-                  <span className="text-emerald-400 font-bold">{item.matchScore}% Match</span>
-                  <span>·</span>
-                  <span>{item.releaseYear}</span>
-                  <span>·</span>
-                  <span className="border border-zinc-700 px-1.5 py-0.2 rounded font-mono text-zinc-300">
-                    {item.ageRating}
-                  </span>
+                {/* Title & Meta */}
+                <div className="pt-4">
+                  <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight drop-shadow-lg mb-2">
+                    {item.title}
+                  </h1>
+                  {item.japaneseTitle && item.japaneseTitle !== item.title && (
+                    <p className="text-sm text-zinc-400 italic mb-4">{item.japaneseTitle}</p>
+                  )}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-300 mb-4">
+                    <span className="text-emerald-400 font-bold">{item.matchScore}% Match</span>
+                    <span>·</span>
+                    <span>{item.releaseYear}</span>
+                    <span>·</span>
+                    <span className="border border-zinc-700 px-1.5 py-0.2 rounded font-mono text-zinc-300">
+                      {item.ageRating}
+                    </span>
+                  </div>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      onClick={() => { navigate('/watch/' + item.id + '?type=' + item.type + (item.episodesCount ? '&s=1&e=1' : '')); }}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-white text-zinc-950 hover:bg-zinc-200 font-bold text-sm transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <Play className="w-4 h-4 fill-current text-zinc-950" />
+                      Play
+                    </button>
+                    <button
+                      onClick={toggleMyList}
+                      className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
+                        isInMyList
+                          ? "bg-red-600 border-red-500 text-white"
+                          : "bg-zinc-900/80 border-zinc-600 text-zinc-200 hover:border-zinc-400"
+                      }`}
+                      title={isInMyList ? "Remove from My List" : "Add to My List"}
+                    >
+                      {isInMyList ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={toggleWatched}
+                      className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
+                        isWatchedState
+                          ? "bg-emerald-600 border-emerald-500 text-white"
+                          : "bg-zinc-900/80 border-zinc-600 text-zinc-200 hover:border-zinc-400"
+                      }`}
+                      title={isWatchedState ? "Mark as Unwatched" : "Mark as Watched"}
+                    >
+                      {isWatchedState ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={handleShare}
+                      className="p-2.5 rounded-lg border border-zinc-600 bg-zinc-900/80 text-zinc-200 hover:border-zinc-400 hover:bg-zinc-800 transition-all cursor-pointer"
+                      title="Share"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Description */}
                 <p className="text-zinc-300 text-sm leading-relaxed">{item.overview}</p>
                 {item.cast && item.cast.length > 0 && (
                   <div className="mt-4 space-y-2 pb-8">

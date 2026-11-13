@@ -17,6 +17,7 @@ import { DetailPage } from "@/routes/detail/[id]";
 import { WatchPage } from "@/routes/watch/[id]";
 import { ProfilePage } from "@/routes/profile";
 import { SettingsPage } from "@/routes/settings";
+import { HistoryPage } from "@/routes/history";
 import { getSelectedProfile } from "@/lib/selected-profile";
 import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
 import { ReduceMotionProvider } from "@/lib/reduce-motion";
@@ -114,6 +115,7 @@ function AppInner() {
     if (path === "/mylist") return <MyListPage />;
     if (path === "/trending") return <TrendingPage />;
     if (path === "/search") return <SearchPage />;
+    if (path === "/history") return <HistoryPage />;
     if (path.startsWith("/detail/")) return <DetailPage />;
     if (path.startsWith("/watch/")) return <WatchPage />;
     if (path === "/profile") return <ProfilePage />;

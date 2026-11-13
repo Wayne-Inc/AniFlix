@@ -43,6 +43,7 @@ export type FirestoreContinueItem = {
   season?: number;
   episode?: number;
   watched: boolean;
+  type: "anime" | "movie";
 };
 
 function makeDocId(itemId: number, season?: number, episode?: number) {
@@ -90,6 +91,7 @@ export async function saveProgressToFirestore(
       season,
       episode,
       watched: true,
+      type: item.type,
     }, { merge: true });
     return;
   }
@@ -120,6 +122,7 @@ export async function saveProgressToFirestore(
     season,
     episode,
     watched: false,
+    type: item.type,
   };
   await setDoc(doc(db, CW_COLLECTION, docId), data);
 }
@@ -190,6 +193,7 @@ export async function setWatched(
     season,
     episode,
     watched: true,
+    type: item.type,
   }, { merge: true });
 }
 
@@ -262,4 +266,53 @@ export async function isWatched(item: AnimeItem, season?: number, episode?: numb
   const snap = await getDoc(doc(db, CW_COLLECTION, docId));
   if (!snap.exists()) return false;
   return snap.data().watched === true;
+}
+
+export type HistoryItem = {
+  id: string;
+  movieId: number;
+  title: string;
+  poster: string;
+  backdrop: string;
+  rating: string;
+  runtime: string;
+  genres: string[];
+  genreIds: number[];
+  match: number;
+  score?: number;
+  description: string;
+  year: number;
+  cast: string[];
+  castPfp: string[];
+  director: string;
+  directorId: string;
+  progress: number;
+  duration: number;
+  updatedAt: number;
+  season?: number;
+  episode?: number;
+  watched: boolean;
+  type: "anime" | "movie";
+};
+
+export async function getHistoryFromFirestore(): Promise<HistoryItem[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const profileId = getSelectedProfileId();
+  if (!profileId) return [];
+  const q = query(
+    collection(db, CW_COLLECTION),
+    where("userId", "==", user.uid),
+    where("profileId", "==", profileId),
+    orderBy("updatedAt", "desc"),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }) as HistoryItem)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function getWatchedHistoryFromFirestore(): Promise<HistoryItem[]> {
+  const all = await getHistoryFromFirestore();
+  return all.filter((item) => item.watched === true);
 }

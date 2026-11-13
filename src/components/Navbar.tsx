@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Search, Settings, Heart, Film, Tv, TrendingUp, X, ChevronDown, LogOut, LogIn, User as UserIcon, Bookmark } from "lucide-react";
+import { Search, Settings, Heart, Film, Tv, TrendingUp, X, ChevronDown, LogOut, LogIn, User as UserIcon, Bookmark, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface NavbarProps {
@@ -121,6 +121,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Bookmark className="w-3.5 h-3.5 text-rose-400" />
               My List
             </button>
+            <button
+              onClick={() => navigate("/history")}
+              className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 cursor-pointer ${
+                isActive("/history") ? activeClass : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5 text-orange-400" />
+              History
+            </button>
           </nav>
         </div>
 
@@ -190,6 +199,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Settings className="w-3.5 h-3.5 text-zinc-400" />
                   <span>Account settings</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    navigate("/history");
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                >
+                  <Clock className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Watch History</span>
+                </button>
                 <div className="border-t border-zinc-800 my-1"></div>
                 {loading ? (
                   <div className="w-full px-3 py-2 text-xs text-zinc-500">
@@ -256,6 +275,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             }`}
           >
             My List
+          </button>
+          <button
+            onClick={() => navigate("/history")}
+            className={`px-2 py-1 rounded cursor-pointer ${
+              isActive("/history") ? "text-orange-400 bg-orange-400/10" : "text-zinc-400"
+            }`}
+          >
+            History
           </button>
         </div>
       </div>
