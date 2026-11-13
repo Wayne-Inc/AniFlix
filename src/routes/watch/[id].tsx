@@ -3,7 +3,7 @@ import { AnimeItem } from "@/types/anime";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { markWatched, isWatched } from "@/lib/continue-watching-firestore";
+import { setWatched, isWatched } from "@/lib/continue-watching-firestore";
 import { toast } from "sonner";
 
 interface EmbedServer {
@@ -148,15 +148,32 @@ export function WatchPage() {
     checkPip();
   }, []);
 
+  // Minimal item for progress writes. `season`/`episode` come from the URL, so
+  // each watched document is per-episode and the AniList sync can count them.
+  const progressItem = {
+    id: parseInt(id, 10),
+    tmdbId: parseInt(id, 10),
+    title: "",
+    type: "anime" as const,
+    overview: "",
+    backdropPath: "",
+    posterPath: "",
+    voteAverage: 0,
+    voteCount: 0,
+    genres: [],
+    matchScore: 0,
+  };
+
   useEffect(() => {
     if (!id) return;
-    isWatched({ id: parseInt(id, 10), tmdbId: parseInt(id, 10), title: "", type: "anime", overview: "", backdropPath: "", posterPath: "", voteAverage: 0, voteCount: 0, genres: [], matchScore: 0 }).then(setIsWatchedState);
-  }, [id]);
+    isWatched(progressItem, season, episode).then(setIsWatchedState);
+  }, [id, season, episode]);
 
   const toggleWatched = async () => {
-    setIsWatchedState((prev) => !prev);
+    const next = !isWatchedState;
+    setIsWatchedState(next);
     if (!id) return;
-    await markWatched({ id: parseInt(id, 10), tmdbId: parseInt(id, 10), title: "", type: "anime", overview: "", backdropPath: "", posterPath: "", voteAverage: 0, voteCount: 0, genres: [], matchScore: 0 });
+    await setWatched(progressItem, next, season, episode);
   };
 
   const handleShare = async () => {

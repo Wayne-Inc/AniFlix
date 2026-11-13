@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { ArrowLeft, Settings, Loader, Minimize2, ShieldOff, CheckCircle2, Circle } from "lucide-react";
 import { toast } from "sonner";
-import { markWatched, isWatched } from "../lib/continue-watching-firestore";
+import { setWatched, isWatched } from "../lib/continue-watching-firestore";
 import { AnimeItem } from "../types/anime";
 
 interface EmbedServer {
@@ -185,13 +185,16 @@ export function EmbedPlayer({ item, onClose, onBack }: EmbedPlayerProps) {
   // Watched state
   useEffect(() => {
     if (!item.tmdbId) return;
-    isWatched(item).then(setIsWatchedState);
-  }, [item]);
+    isWatched(item, season, episode).then(setIsWatchedState);
+  }, [item, season, episode]);
 
   const toggleWatched = async () => {
-    setIsWatchedState((prev) => !prev);
+    const next = !isWatchedState;
+    setIsWatchedState(next);
     if (!item.tmdbId) return;
-    await markWatched(item);
+    // Episode-scoped when the player knows the season/episode, so the AniList
+    // sync can count episodes instead of guessing "whole series watched".
+    await setWatched(item, next, season, episode);
   };
 
   // Build embed URL when server or item changes

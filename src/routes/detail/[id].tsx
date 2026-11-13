@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, CheckCircle2, Circle, ChevronRight, ChevronDown, Monitor, PlayCircle } from "lucide-react";
 import { AnimeItem, Episode, Season } from "@/types/anime";
 import { fetchAnimeDetails } from "@/services/tmdb";
-import { markWatched, isWatched } from "@/lib/continue-watching-firestore";
+import { setWatched, isWatched } from "@/lib/continue-watching-firestore";
 import { setMyListInFirestore, removeMyListFromFirestore, getMyListFromFirestore } from "@/lib/my-list-firestore";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -56,9 +56,10 @@ export function DetailPage() {
   }, [item]);
 
   const toggleWatched = async () => {
-    setIsWatchedState((prev) => !prev);
+    const next = !isWatchedState;
+    setIsWatchedState(next);
     if (!item?.tmdbId) return;
-    await markWatched(item);
+    await setWatched(item, next);
   };
 
   const toggleMyList = async () => {

@@ -142,12 +142,28 @@ export async function getContinueWatchingFromFirestore(): Promise<FirestoreConti
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export async function markWatched(item: AnimeItem, season?: number, episode?: number) {
+/**
+ * Persist (or clear) the watched flag for a whole title, or for one episode when
+ * `season`/`episode` are given. Un-watching has to delete the document: a
+ * falsy "watched" field would still count towards local progress.
+ */
+export async function setWatched(
+  item: AnimeItem,
+  watched: boolean,
+  season?: number,
+  episode?: number,
+) {
   const user = auth.currentUser;
   if (!user) return;
   const profileId = getSelectedProfileId();
   if (!profileId) return;
   const docId = `${user.uid}_${profileId}_${makeDocId(item.id, season, episode)}`;
+
+  if (!watched) {
+    await deleteDoc(doc(db, CW_COLLECTION, docId)).catch(() => {});
+    return;
+  }
+
   await setDoc(doc(db, CW_COLLECTION, docId), {
     id: docId,
     userId: user.uid,
@@ -175,6 +191,66 @@ export async function markWatched(item: AnimeItem, season?: number, episode?: nu
     episode,
     watched: true,
   }, { merge: true });
+}
+
+/** Kept for call sites that only ever mark something watched. */
+export async function markWatched(item: AnimeItem, season?: number, episode?: number) {
+  return setWatched(item, true, season, episode);
+}
+
+export type ItemWatchState = {
+  /** Distinct episodes marked watched for this title. */
+  episodeCount: number;
+  /** The title was marked watched as a whole (no episode given). */
+  wholeTitle: boolean;
+  /** Newest local change, ms since epoch. Drives push/pull conflict resolution. */
+  updatedAt: number;
+};
+
+/**
+ * One pass over the user's watched documents, aggregated per title. Used by the
+ * AniList sync to turn local episode flags into an AniList `progress` value.
+ */
+export async function getWatchStateByItem(): Promise<Map<number, ItemWatchState>> {
+  const user = auth.currentUser;
+  if (!user) return new Map();
+  const profileId = getSelectedProfileId();
+  if (!profileId) return new Map();
+
+  const q = query(
+    collection(db, CW_COLLECTION),
+    where("userId", "==", user.uid),
+    where("profileId", "==", profileId),
+  );
+  const snap = await getDocs(q);
+
+  const perTitle = new Map<number, { episodes: Set<string>; wholeTitle: boolean; updatedAt: number }>();
+
+  for (const docSnap of snap.docs) {
+    const data = docSnap.data() as FirestoreContinueItem;
+    if (data.watched !== true || typeof data.movieId !== "number") continue;
+
+    const current = perTitle.get(data.movieId) ?? {
+      episodes: new Set<string>(),
+      wholeTitle: false,
+      updatedAt: 0,
+    };
+
+    if (data.season != null && data.episode != null) {
+      current.episodes.add(`${data.season}:${data.episode}`);
+    } else {
+      current.wholeTitle = true;
+    }
+    current.updatedAt = Math.max(current.updatedAt, data.updatedAt ?? 0);
+    perTitle.set(data.movieId, current);
+  }
+
+  return new Map(
+    [...perTitle.entries()].map(([id, state]) => [
+      id,
+      { episodeCount: state.episodes.size, wholeTitle: state.wholeTitle, updatedAt: state.updatedAt },
+    ]),
+  );
 }
 
 export async function isWatched(item: AnimeItem, season?: number, episode?: number): Promise<boolean> {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Play, Plus, Check, Star, Volume2, VolumeX, Clock, Film, Tv, Sparkles, CheckCircle2, Circle } from 'lucide-react';
 import { AnimeItem, Episode } from '../types/anime';
 import { fetchAnimeDetails } from '../services/tmdb';
-import { markWatched, isWatched } from '../lib/continue-watching-firestore';
+import { setWatched, isWatched } from '../lib/continue-watching-firestore';
 
 interface DetailModalProps {
   item: AnimeItem | null;
@@ -51,9 +51,10 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   }, [item]);
 
   const toggleWatched = async () => {
-    setIsWatchedState((prev) => !prev);
+    const next = !isWatchedState;
+    setIsWatchedState(next);
     if (!item.tmdbId) return;
-    await markWatched(item);
+    await setWatched(item, next);
   };
 
   return (

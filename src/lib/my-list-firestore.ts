@@ -1,4 +1,4 @@
-import { doc, setDoc, getDocs, collection, query, where, deleteDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, getDocs, collection, query, where, deleteDoc } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import { getSelectedProfileId } from "./selected-profile";
 import type { AnimeItem } from "../types/anime";
@@ -65,6 +65,51 @@ export async function removeMyListFromFirestore(id: number) {
   if (!profileId) return;
   const docId = `${user.uid}_${profileId}_${makeDocId(id)}`;
   await deleteDoc(doc(db, MYLIST_COLLECTION, docId)).catch(() => {});
+}
+
+export type MyListEntry = {
+  docId: string;
+  item: AnimeItem;
+  addedAt: number;
+};
+
+/** Raw entries (item + timestamps), for code that needs more than the item. */
+export async function getMyListEntriesFromFirestore(): Promise<MyListEntry[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const profileId = getSelectedProfileId();
+  if (!profileId) return [];
+  const q = query(
+    collection(db, MYLIST_COLLECTION),
+    where("userId", "==", user.uid),
+    where("profileId", "==", profileId),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => {
+      const data = d.data() as FirestoreMyListEntry;
+      return { docId: d.id, item: data.item, addedAt: data.addedAt };
+    })
+    .filter((e) => e.item)
+    .sort((a, b) => b.addedAt - a.addedAt);
+}
+
+/**
+ * Merge sync metadata (AniList id/status/progress) into an existing entry without
+ * touching the rest of the item. No-op when the title is no longer in the list.
+ */
+export async function updateMyListItemMeta(id: number, patch: Partial<AnimeItem>) {
+  const user = auth.currentUser;
+  if (!user) return;
+  const profileId = getSelectedProfileId();
+  if (!profileId) return;
+  const ref = doc(db, MYLIST_COLLECTION, `${user.uid}_${profileId}_${makeDocId(id)}`);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  const data = snap.data() as FirestoreMyListEntry;
+  const item = { ...data.item, ...patch };
+  await setDoc(ref, stripUndefined({ ...data, item }), { merge: true });
 }
 
 export async function getMyListFromFirestore(): Promise<AnimeItem[]> {

@@ -33,6 +33,20 @@ export interface AnimeItem {
   id: number;
   tmdbId?: number;
   malId?: number;
+  /** AniList media id, learned the first time this item is synced. */
+  anilistId?: number;
+  /** Remote list status as last read/written ('CURRENT', 'COMPLETED', ...). */
+  anilistStatus?: string;
+  /** Remote episode count as last read/written. */
+  anilistProgress?: number;
+  /** Remote entry updatedAt, in ms since epoch. Used for conflict resolution. */
+  anilistUpdatedAt?: number;
+  /** MyAnimeList list status as last read/written ('watching', 'completed', ...). */
+  malStatus?: string;
+  /** MyAnimeList episodes watched as last read/written. */
+  malProgress?: number;
+  /** MyAnimeList entry updated_at, in ms since epoch. */
+  malUpdatedAt?: number;
   title: string;
   japaneseTitle?: string;
   romajiTitle?: string;

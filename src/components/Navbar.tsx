@@ -180,6 +180,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <UserIcon className="w-3.5 h-3.5 text-zinc-400" />
                   <span>Choose Profile</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    navigate("/settings");
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs flex items-center gap-2 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                >
+                  <Settings className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Account settings</span>
+                </button>
                 <div className="border-t border-zinc-800 my-1"></div>
                 {loading ? (
                   <div className="w-full px-3 py-2 text-xs text-zinc-500">

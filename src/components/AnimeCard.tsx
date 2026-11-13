@@ -2,6 +2,29 @@ import React, { useState } from 'react';
 import { Plus, Check, Heart, Star } from 'lucide-react';
 import { AnimeItem } from '../types/anime';
 
+/**
+ * Compact AniList state for the card corner. Only rendered after a sync has
+ * recorded a status, so unsynced items stay visually unchanged.
+ */
+function anilistBadge(item: AnimeItem): string {
+  switch (item.anilistStatus) {
+    case 'COMPLETED':
+      return 'DONE';
+    case 'CURRENT':
+      return `${item.anilistProgress ?? 0} EP`;
+    case 'PLANNING':
+      return 'PLANNED';
+    case 'REPEATING':
+      return 'REWATCH';
+    case 'PAUSED':
+      return 'PAUSED';
+    case 'DROPPED':
+      return 'DROPPED';
+    default:
+      return item.anilistStatus ?? '';
+  }
+}
+
 interface AnimeCardProps {
   item: AnimeItem;
   onSelect: (item: AnimeItem) => void;
@@ -72,6 +95,15 @@ export const AnimeCard: React.FC<AnimeCardProps> = ({
             </span>
           )}
         </div>
+
+        {item.anilistStatus && (
+          <span
+            className="absolute top-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold text-sky-300 shadow ring-1 ring-sky-400/30"
+            title={`AniList: ${item.anilistStatus}${item.anilistProgress != null ? ` · ${item.anilistProgress} episodes` : ''}`}
+          >
+            {anilistBadge(item)}
+          </span>
+        )}
 
         {/* Hover Action Overlay (My List + title info) */}
         <div

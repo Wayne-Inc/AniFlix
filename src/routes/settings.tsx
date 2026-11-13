@@ -10,6 +10,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { ConnectedAccounts } from "@/components/ConnectedAccounts";
 import { signOut as firebaseSignOut, sendPasswordResetEmail, sendEmailVerification, deleteUser, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
@@ -130,7 +131,7 @@ export function SettingsPage() {
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <h1 className="text-2xl font-bold tracking-tight">Account Settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your profile, security, and signed-in devices.
+          Manage your profile, security, connected accounts, and signed-in devices.
         </p>
 
         <div className="mt-6 space-y-6">
@@ -196,6 +197,8 @@ export function SettingsPage() {
               </div>
             </div>
           </div>
+
+          <ConnectedAccounts />
 
           {canChangePassword && (
             <div className="border-t border-zinc-800 pt-6">

@@ -16,6 +16,7 @@ import { SearchPage } from "@/routes/search";
 import { DetailPage } from "@/routes/detail/[id]";
 import { WatchPage } from "@/routes/watch/[id]";
 import { ProfilePage } from "@/routes/profile";
+import { SettingsPage } from "@/routes/settings";
 import { getSelectedProfile } from "@/lib/selected-profile";
 import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
 
@@ -95,6 +96,7 @@ function AppInner() {
     if (path.startsWith("/detail/")) return <DetailPage />;
     if (path.startsWith("/watch/")) return <WatchPage />;
     if (path === "/profile") return <ProfilePage />;
+    if (path === "/settings") return <SettingsPage />;
     return <HomePage />;
   };
 
