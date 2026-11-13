@@ -7,6 +7,12 @@
 // MAL has no equivalent of AniList's one-shot mutation response timestamp on the
 // list endpoint, so `updated_at` (ISO 8601) is parsed to milliseconds and the
 // same "newest watch activity wins" rule applies.
+//
+// Deletion handling:
+//   - When user removes from My List and chooses "also remove from MyAnimeList",
+//     we queue a pending deletion locally.
+//   - On next sync, pending deletions are pushed to MAL via the delete endpoint.
+//   - After successful remote deletion, pending deletion is cleared.
 import { getValidMalToken, MalAuthError } from "./mal-auth";
 import { isValidMalStatus, type MalStatus } from "./mal-config";
 import { getMyListEntriesFromFirestore, updateMyListItemMeta } from "./my-list-firestore";
@@ -15,6 +21,7 @@ import { deriveProgress, reconcile, type LocalWatchState } from "./anilist-mappi
 import { resolveMediaIds } from "./media-ids";
 
 const LAST_SYNC_KEY = "mal:lastSync";
+const PENDING_DELETIONS_KEY = "mal:pendingDeletions";
 
 export type MalSyncSummary = {
   at: number;
@@ -23,6 +30,7 @@ export type MalSyncSummary = {
   unchanged: number;
   unmatched: number;
   failed: number;
+  deleted: number;
   errors: string[];
 };
 
@@ -49,6 +57,7 @@ type RemoteMalEntry = {
   status: MalStatus;
   progress: number;
   updatedAtMs: number;
+  entryId: number; // MAL's list entry ID (different from media ID)
 };
 
 export function getLastMalSyncSummary(): MalSyncSummary | null {
@@ -64,6 +73,33 @@ function saveLastMalSyncSummary(summary: MalSyncSummary) {
   try {
     localStorage.setItem(LAST_SYNC_KEY, JSON.stringify(summary));
   } catch {}
+}
+
+function readPendingDeletions(): number[] {
+  try {
+    const raw = localStorage.getItem(PENDING_DELETIONS_KEY);
+    return raw ? (JSON.parse(raw) as number[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingDeletions(ids: number[]) {
+  try {
+    localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(ids));
+  } catch {}
+}
+
+export function addMalPendingDeletion(entryId: number) {
+  const pending = readPendingDeletions();
+  if (!pending.includes(entryId)) {
+    pending.push(entryId);
+    writePendingDeletions(pending);
+  }
+}
+
+export function getMalPendingDeletions(): number[] {
+  return readPendingDeletions();
 }
 
 /** MAL's status vocabulary from the local watch state. */
@@ -100,11 +136,13 @@ async function fetchRemoteEntries(token: string): Promise<Map<number, RemoteMalE
     if (typeof malId !== "number" || !status || !isValidMalStatus(status)) continue;
 
     const updatedAtMs = raw.list_status?.updated_at ? Date.parse(raw.list_status.updated_at) : NaN;
+    // The list entry ID is the same as the media ID for MAL's API
     entries.set(malId, {
       malId,
       status,
       progress: raw.list_status?.num_episodes_watched ?? 0,
       updatedAtMs: Number.isFinite(updatedAtMs) ? updatedAtMs : 0,
+      entryId: malId,
     });
   }
 
@@ -150,6 +188,29 @@ async function pushEntry(
   };
 }
 
+async function deleteEntry(token: string, entryId: number): Promise<boolean> {
+  const res = await fetch("/api/mal?op=delete", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ entryId }),
+  }).catch(() => null);
+
+  if (!res) throw new MalSyncError("Could not reach AniFlix to delete from MyAnimeList.", "failed");
+  if (res.status === 401) {
+    throw new MalSyncError("MyAnimeList rejected the stored token. Connect the account again.", "expired");
+  }
+  if (res.status === 429) {
+    throw new MalSyncError("MyAnimeList is rate limiting requests. Try again shortly.", "rate_limited");
+  }
+  if (!res.ok) return false;
+
+  const data = (await res.json()) as { deleted?: boolean };
+  return data.deleted ?? false;
+}
+
 let running = false;
 
 /**
@@ -168,6 +229,7 @@ export async function syncMal(): Promise<MalSyncSummary> {
     unchanged: 0,
     unmatched: 0,
     failed: 0,
+    deleted: 0,
     errors: [],
   };
 
@@ -176,6 +238,28 @@ export async function syncMal(): Promise<MalSyncSummary> {
     const remote = await fetchRemoteEntries(token);
     const localEntries = await getMyListEntriesFromFirestore();
     const watchStates = await getWatchStateByItem();
+
+    // Process pending deletions first
+    const pendingDeletions = readPendingDeletions();
+    const remainingDeletions: number[] = [];
+
+    for (const entryId of pendingDeletions) {
+      try {
+        const deleted = await deleteEntry(token, entryId);
+        if (deleted) {
+          summary.deleted += 1;
+        } else {
+          remainingDeletions.push(entryId);
+          summary.failed += 1;
+          summary.errors.push(`Failed to delete MAL entry ${entryId}`);
+        }
+      } catch (e) {
+        remainingDeletions.push(entryId);
+        summary.failed += 1;
+        summary.errors.push(e instanceof Error ? e.message : `Failed to delete MAL entry ${entryId}`);
+      }
+    }
+    writePendingDeletions(remainingDeletions);
 
     for (const entry of localEntries) {
       const item = entry.item;

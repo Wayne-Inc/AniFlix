@@ -12,6 +12,7 @@
 //   GET  /api/mal?op=me      -> /v2/users/@me
 //   GET  /api/mal?op=list    -> /v2/users/@me/animelist (all pages)
 //   POST /api/mal?op=update  { malId, status, num_watched_episodes }
+//   POST /api/mal?op=delete  { entryId }
 import type { IncomingMessage, ServerResponse } from "node:http";
 import process from "node:process";
 
@@ -181,6 +182,29 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       });
       const payload = await upstream.json().catch(() => ({}));
       json(res, upstream.status, payload);
+      return;
+    }
+
+    if (op === "delete") {
+      if (req.method !== "POST") {
+        json(res, 405, { error: "method_not_allowed" });
+        return;
+      }
+      const body = await readJsonBody(req);
+      const entryId = Number(body.entryId);
+
+      if (!Number.isInteger(entryId) || entryId <= 0) {
+        json(res, 400, { error: "invalid_entry_id" });
+        return;
+      }
+
+      const upstream = await fetch(`${MAL_API}/anime/${entryId}/my_list_status`, {
+        method: "DELETE",
+        headers: malHeaders(token),
+      });
+      const payload = await upstream.json().catch(() => ({}));
+      // MAL returns 204 No Content on success
+      json(res, upstream.status, { deleted: upstream.ok });
       return;
     }
 

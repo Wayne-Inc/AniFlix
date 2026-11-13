@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Link2, ArrowUpRight, Loader2, CheckCircle2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Link2, ArrowUpRight, Loader2, CheckCircle2, AlertTriangle, RefreshCw, Clock, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   AniListSyncError,
@@ -37,6 +37,20 @@ import {
   startAniListLink,
   type AniListConnection,
 } from "@/lib/anilist-auth";
+import {
+  getSyncPreferences,
+  saveSyncPreferences,
+  formatInterval,
+  type SyncInterval,
+  type SyncPreferences,
+} from "@/lib/sync-preferences";
+import {
+  startPeriodicSync,
+  stopPeriodicSync,
+  triggerPeriodicSyncNow,
+  getPeriodicSyncStatus,
+  updatePeriodicSyncPrefs,
+} from "@/lib/periodic-sync";
 
 // Provider cards for the settings page.
 //
@@ -137,6 +151,18 @@ export function ConnectedAccounts() {
   const malUserLoadStarted = useRef<string | null>(null);
   const handledRedirect = useRef(false);
 
+  // Periodic sync preferences state
+  const [syncPrefs, setSyncPrefs] = useState<SyncPreferences>(() => getSyncPreferences());
+  const [periodicSyncStatus, setPeriodicSyncStatus] = useState(() => getPeriodicSyncStatus());
+  const [aniListPeriodicSyncing, setAniListPeriodicSyncing] = useState(false);
+  const [malPeriodicSyncing, setMalPeriodicSyncing] = useState(false);
+
+  // Keep periodic sync status in sync with preferences changes
+  useEffect(() => {
+    const status = getPeriodicSyncStatus();
+    setPeriodicSyncStatus(status);
+  }, [syncPrefs.enabled, syncPrefs.interval, syncPrefs.syncAniList, syncPrefs.syncMal]);
+
   // Fetch the AniList username/avatar for an existing token. Failure here means
   // the token was revoked: tell the user instead of showing a stale identity.
   const loadViewer = useCallback(async (token: string) => {
@@ -218,7 +244,7 @@ export function ConnectedAccounts() {
       const result = await syncAniList();
       setSummary(result);
       toast.success("Synced with AniList", {
-        description: `${result.pushed} pushed · ${result.pulled} pulled · ${result.unmatched} unmatched`,
+        description: `${result.pushed} pushed · ${result.pulled} pulled · ${result.deleted} deleted · ${result.unmatched} unmatched`,
       });
       if (result.failed > 0) {
         setError(result.errors[0] ?? `${result.failed} title(s) could not be synced.`);
@@ -315,7 +341,7 @@ export function ConnectedAccounts() {
       const result = await syncMal();
       setMalSummary(result);
       toast.success("Synced with MyAnimeList", {
-        description: `${result.pushed} pushed · ${result.pulled} pulled · ${result.unmatched} unmatched`,
+        description: `${result.pushed} pushed · ${result.pulled} pulled · ${result.deleted} deleted · ${result.unmatched} unmatched`,
       });
       if (result.failed > 0) {
         setMalError(result.errors[0] ?? `${result.failed} title(s) could not be synced.`);
@@ -335,6 +361,201 @@ export function ConnectedAccounts() {
       setMalSyncing(false);
     }
   };
+
+  // Periodic sync settings handlers
+  const handlePeriodicSyncToggle = (tracker: "anilist" | "mal", enabled: boolean) => {
+    const nextPrefs = updatePeriodicSyncPrefs({
+      [`sync${tracker === "anilist" ? "AniList" : "Mal"}`]: enabled,
+    });
+    setSyncPrefs(nextPrefs);
+  };
+
+  const handlePeriodicSyncIntervalChange = (interval: SyncInterval) => {
+    const nextPrefs = updatePeriodicSyncPrefs({ interval, enabled: interval !== "disabled" });
+    setSyncPrefs(nextPrefs);
+  };
+
+  const handlePeriodicSyncVisibilityChange = (enabled: boolean) => {
+    const nextPrefs = updatePeriodicSyncPrefs({ onlyWhenVisible: enabled });
+    setSyncPrefs(nextPrefs);
+  };
+
+  const handleManualPeriodicSync = async (tracker: "anilist" | "mal") => {
+    if (tracker === "anilist") {
+      setAniListPeriodicSyncing(true);
+    } else {
+      setMalPeriodicSyncing(true);
+    }
+    try {
+      const result = await triggerPeriodicSyncNow();
+      if (tracker === "anilist" && result.aniList) {
+        toast.success("AniList periodic sync triggered");
+      } else if (tracker === "mal" && result.mal) {
+        toast.success("MyAnimeList periodic sync triggered");
+      } else if (!result.aniList && !result.mal) {
+        toast.error("No trackers connected for periodic sync");
+      }
+      // Refresh status
+      setPeriodicSyncStatus(getPeriodicSyncStatus());
+    } catch (e) {
+      toast.error("Periodic sync failed");
+    } finally {
+      setAniListPeriodicSyncing(false);
+      setMalPeriodicSyncing(false);
+    }
+  };
+
+  // Periodic Sync Settings UI Component
+  function PeriodicSyncSettings({
+    tracker,
+    connected,
+    syncing,
+    syncEnabled,
+    onToggle,
+    onIntervalChange,
+    onVisibilityChange,
+    onManualSync,
+    manualSyncing,
+  }: {
+    tracker: "anilist" | "mal";
+    connected: boolean;
+    syncing: boolean;
+    syncEnabled: boolean;
+    onToggle: (enabled: boolean) => void;
+    onIntervalChange: (interval: SyncInterval) => void;
+    onVisibilityChange: (enabled: boolean) => void;
+    onManualSync: () => void;
+    manualSyncing: boolean;
+  }) {
+    if (!connected) return null;
+
+    const intervals: { value: SyncInterval; label: string }[] = [
+      { value: "disabled", label: "Disabled" },
+      { value: "15m", label: "Every 15 minutes" },
+      { value: "30m", label: "Every 30 minutes" },
+      { value: "1h", label: "Every hour" },
+      { value: "6h", label: "Every 6 hours" },
+      { value: "24h", label: "Once daily" },
+    ];
+
+    const status = getPeriodicSyncStatus();
+    const nextRunIn = status.nextRunInMs;
+    const nextRunText = nextRunIn && nextRunIn > 0
+      ? nextRunIn < 60000
+        ? `${Math.ceil(nextRunIn / 1000)}s`
+        : nextRunIn < 3600000
+          ? `${Math.ceil(nextRunIn / 60000)}m`
+          : `${Math.ceil(nextRunIn / 3600000)}h`
+      : "—";
+
+    return (
+      <div className="space-y-3 pt-2 border-t border-zinc-800">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-zinc-300">Auto-sync</span>
+            <button
+              type="button"
+              onClick={() => onToggle(!syncEnabled)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                syncEnabled ? "bg-emerald-600" : "bg-zinc-800"
+              }`}
+              role="switch"
+              aria-checked={syncEnabled}
+              aria-label={syncEnabled ? "Disable auto-sync" : "Enable auto-sync"}
+            >
+              <span
+                className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                  syncEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          {syncEnabled && (
+            <button
+              type="button"
+              onClick={onManualSync}
+              disabled={syncing || manualSyncing}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded border border-zinc-700 px-2 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              title="Run auto-sync now"
+            >
+              {manualSyncing ? (
+                <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw className="size-3" aria-hidden="true" />
+              )}
+              <span className="hidden sm:inline">{manualSyncing ? "Running…" : "Sync now"}</span>
+            </button>
+          )}
+        </div>
+
+        {syncEnabled && (
+          <div className="space-y-2">
+            <div>
+              <label className="text-[10px] uppercase tracking-wide text-zinc-500">Interval</label>
+              <select
+                value={syncPrefs.interval}
+                onChange={(e) => onIntervalChange(e.target.value as SyncInterval)}
+                className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-900/60 px-2 py-1.5 text-xs text-zinc-200 outline-none focus:border-sky-500"
+              >
+                {intervals.map((i) => (
+                  <option key={i.value} value={i.value}>
+                    {i.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <Clock className="size-3.5 text-zinc-500" />
+                <span className="text-[11px] text-zinc-400">Next sync in: <span className="text-zinc-200 font-mono">{nextRunText}</span></span>
+              </div>
+              {status.lastRunAt && (
+                <span className="text-[10px] text-zinc-500">
+                  Last: {new Date(status.lastRunAt).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400">Sync {tracker === "anilist" ? "AniList" : "MyAnimeList"}</span>
+                <button
+                  type="button"
+                  onClick={() => onToggle(false)}
+                  className="text-[10px] text-zinc-500 hover:text-zinc-300"
+                >
+                  (per-tracker below)
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-800 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-400">Only when tab visible</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => onVisibilityChange(!syncPrefs.onlyWhenVisible)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  syncPrefs.onlyWhenVisible ? "bg-emerald-600" : "bg-zinc-800"
+                }`}
+                role="switch"
+                aria-checked={syncPrefs.onlyWhenVisible}
+                aria-label={syncPrefs.onlyWhenVisible ? "Disable 'only when visible'" : "Enable 'only when visible'"}
+              >
+                <span
+                  className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                    syncPrefs.onlyWhenVisible ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const anilistPill = connection ? (
     <StatusPill tone="connected" label="Connected" />
@@ -391,6 +612,7 @@ export function ConnectedAccounts() {
           {summary && (
             <p className="truncate text-[10px] text-zinc-500">
               {summary.pushed} pushed · {summary.pulled} pulled
+              {summary.deleted > 0 ? ` · ${summary.deleted} deleted` : ""}
               {summary.failed > 0 ? ` · ${summary.failed} failed` : ""}
               {summary.unmatched > 0 ? ` · ${summary.unmatched} not on AniList` : ""}
             </p>
@@ -411,6 +633,18 @@ export function ConnectedAccounts() {
           {syncing ? "Syncing…" : "Sync now"}
         </button>
       </div>
+
+      <PeriodicSyncSettings
+        tracker="anilist"
+        connected={!!connection}
+        syncing={syncing}
+        syncEnabled={syncPrefs.syncAniList}
+        onToggle={(enabled) => handlePeriodicSyncToggle("anilist", enabled)}
+        onIntervalChange={handlePeriodicSyncIntervalChange}
+        onVisibilityChange={handlePeriodicSyncVisibilityChange}
+        onManualSync={() => handleManualPeriodicSync("anilist")}
+        manualSyncing={aniListPeriodicSyncing}
+      />
     </div>
   ) : (
     <button
@@ -484,6 +718,7 @@ export function ConnectedAccounts() {
           {malSummary && (
             <p className="truncate text-[10px] text-zinc-500">
               {malSummary.pushed} pushed · {malSummary.pulled} pulled
+              {malSummary.deleted > 0 ? ` · ${malSummary.deleted} deleted` : ""}
               {malSummary.failed > 0 ? ` · ${malSummary.failed} failed` : ""}
               {malSummary.unmatched > 0 ? ` · ${malSummary.unmatched} unmatched` : ""}
             </p>
@@ -504,6 +739,18 @@ export function ConnectedAccounts() {
           {malSyncing ? "Syncing…" : "Sync now"}
         </button>
       </div>
+
+      <PeriodicSyncSettings
+        tracker="mal"
+        connected={!!malConnection}
+        syncing={malSyncing}
+        syncEnabled={syncPrefs.syncMal}
+        onToggle={(enabled) => handlePeriodicSyncToggle("mal", enabled)}
+        onIntervalChange={handlePeriodicSyncIntervalChange}
+        onVisibilityChange={handlePeriodicSyncVisibilityChange}
+        onManualSync={() => handleManualPeriodicSync("mal")}
+        manualSyncing={malPeriodicSyncing}
+      />
     </div>
   ) : (
     <button

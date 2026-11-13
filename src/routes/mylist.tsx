@@ -7,6 +7,8 @@ import { AnimeItem } from "@/types/anime";
 import { navigate } from "@/lib/navigation";
 import { RemoveFromListDialog } from "@/components/RemoveFromListDialog";
 import { toast } from "sonner";
+import { addPendingDeletion } from "@/lib/anilist-sync";
+import { addMalPendingDeletion } from "@/lib/mal-sync";
 
 type Source = "all" | "aniflix" | "anilist" | "mal";
 
@@ -101,13 +103,25 @@ export function MyListPage() {
       await removeMyListFromFirestore(removeDialogItem.id);
       setList((prev) => prev.filter((m) => m.id !== removeDialogItem.id));
       
+      // Queue pending deletions for trackers
       if (mode !== 'local') {
+        if (mode === 'anilist' || mode === 'all') {
+          if (removeDialogItem.anilistId) {
+            addPendingDeletion(removeDialogItem.anilistId);
+          }
+        }
+        if (mode === 'mal' || mode === 'all') {
+          if (removeDialogItem.malId) {
+            addMalPendingDeletion(removeDialogItem.malId);
+          }
+        }
+        
         const trackers: string[] = [];
         if (mode === 'anilist' || mode === 'all') trackers.push('AniList');
         if (mode === 'mal' || mode === 'all') trackers.push('MyAnimeList');
         
-        toast.info(
-          `Removed from AniFlix. ${trackers.join(' + ')} removal will be synced on next sync.`,
+        toast.success(
+          `Removed from AniFlix. ${trackers.join(' + ')} removal queued — will sync on next sync.`,
           { duration: 5000 }
         );
       } else {

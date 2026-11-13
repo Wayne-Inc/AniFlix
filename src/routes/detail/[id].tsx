@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { navigate } from "@/lib/navigation";
 import { RemoveFromListDialog } from "@/components/RemoveFromListDialog";
+import { addPendingDeletion } from "@/lib/anilist-sync";
+import { addMalPendingDeletion } from "@/lib/mal-sync";
 
 export function DetailPage() {
   const { user, signInWithGoogle, loading } = useAuth();
@@ -89,16 +91,27 @@ export function DetailPage() {
       await removeMyListFromFirestore(item.id);
       setIsInMyList(false);
       
-      // If removing from trackers, trigger sync to push deletions
+      // Queue pending deletions for trackers
       if (mode !== 'local') {
-        // Note: The actual remote deletion would be handled by the sync adapters
-        // For now, we show a toast indicating the intent
+        // For AniList, we need the entry ID (list entry ID), not the media ID.
+        // We'll queue the anilistId (which is the media ID) and the sync will look up the entry ID.
+        if (mode === 'anilist' || mode === 'all') {
+          if (item.anilistId) {
+            addPendingDeletion(item.anilistId);
+          }
+        }
+        if (mode === 'mal' || mode === 'all') {
+          if (item.malId) {
+            addMalPendingDeletion(item.malId);
+          }
+        }
+        
         const trackers: string[] = [];
         if (mode === 'anilist' || mode === 'all') trackers.push('AniList');
         if (mode === 'mal' || mode === 'all') trackers.push('MyAnimeList');
         
-        toast.info(
-          `Removed from AniFlix. ${trackers.join(' + ')} removal will be synced on next sync.`,
+        toast.success(
+          `Removed from AniFlix. ${trackers.join(' + ')} removal queued — will sync on next sync.`,
           { duration: 5000 }
         );
       } else {

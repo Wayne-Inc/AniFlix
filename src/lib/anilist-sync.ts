@@ -6,9 +6,11 @@
 //   - Fields AniFlix does not manage (score, notes, favourites, rewatches,
 //     start/finish dates) are never sent, so AniList keeps them intact.
 //
-// What this deliberately does NOT do: delete entries on AniList when a title is
-// removed in AniFlix. A local removal would otherwise be a silent remote delete,
-// and AniList has no undo. Removal stays local for now.
+// Deletion handling:
+//   - When user removes from My List and chooses "also remove from AniList",
+//     we queue a pending deletion locally.
+//   - On next sync, pending deletions are pushed to AniList via deleteMediaListEntry.
+//   - After successful remote deletion, pending deletion is cleared.
 import { fetchAniListViewer, getAniListAccessToken, isAniListUnauthorized } from "./anilist-auth";
 import {
   deriveListStatus,
@@ -26,6 +28,7 @@ import type { AnimeItem } from "../types/anime";
 const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
 const MEDIA_CACHE_KEY = "anilist:mediaIds";
 const LAST_SYNC_KEY = "anilist:lastSync";
+const PENDING_DELETIONS_KEY = "anilist:pendingDeletions";
 const MAX_SEARCHES_PER_RUN = 20;
 
 export type SyncSummary = {
@@ -36,6 +39,7 @@ export type SyncSummary = {
   unmatched: number;
   failed: number;
   errors: string[];
+  deleted: number;
 };
 
 export class AniListSyncError extends Error {
@@ -128,6 +132,14 @@ const SAVE_MUTATION = `
   }
 `;
 
+const DELETE_MUTATION = `
+  mutation ($id: Int) {
+    deleteMediaListEntry(id: $id) {
+      deleted
+    }
+  }
+`;
+
 const SEARCH_QUERY = `
   query ($search: String) {
     Page(perPage: 5) {
@@ -166,6 +178,10 @@ type SaveData = {
   saveMediaListEntry?: { id: number; status: string; progress: number; updatedAt: number };
 };
 
+type DeleteData = {
+  deleteMediaListEntry?: { deleted: boolean };
+};
+
 type SearchData = {
   Page?: {
     media?: {
@@ -192,6 +208,33 @@ function writeMediaCache(cache: Record<string, number>) {
   try {
     localStorage.setItem(MEDIA_CACHE_KEY, JSON.stringify(cache));
   } catch {}
+}
+
+function readPendingDeletions(): number[] {
+  try {
+    const raw = localStorage.getItem(PENDING_DELETIONS_KEY);
+    return raw ? (JSON.parse(raw) as number[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingDeletions(ids: number[]) {
+  try {
+    localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(ids));
+  } catch {}
+}
+
+export function addPendingDeletion(anilistEntryId: number) {
+  const pending = readPendingDeletions();
+  if (!pending.includes(anilistEntryId)) {
+    pending.push(anilistEntryId);
+    writePendingDeletions(pending);
+  }
+}
+
+export function getPendingDeletions(): number[] {
+  return readPendingDeletions();
 }
 
 export function getLastSyncSummary(): SyncSummary | null {
@@ -345,6 +388,11 @@ async function pushEntry(
   };
 }
 
+async function deleteEntry(token: string, entryId: number): Promise<boolean> {
+  const data = await gql<DeleteData>(token, DELETE_MUTATION, { id: entryId });
+  return data.deleteMediaListEntry?.deleted ?? false;
+}
+
 let running = false;
 
 /**
@@ -369,6 +417,7 @@ export async function syncAniList(): Promise<SyncSummary> {
     unchanged: 0,
     unmatched: 0,
     failed: 0,
+    deleted: 0,
     errors: [],
   };
   const recordError = (message: string) => {
@@ -393,6 +442,37 @@ export async function syncAniList(): Promise<SyncSummary> {
     const watchStates = await getWatchStateByItem();
     const cache = readMediaCache();
     const searchBudget = { left: MAX_SEARCHES_PER_RUN };
+
+    // Process pending deletions first
+    const pendingDeletions = readPendingDeletions();
+    const remainingDeletions: number[] = [];
+
+    for (const mediaId of pendingDeletions) {
+      try {
+        // Look up the entry ID from the remote index using the media ID
+        const remoteEntry = remote.byId.get(mediaId);
+        const entryId = remoteEntry?.id;
+        if (!entryId) {
+          // Entry not found on remote (already deleted?) - consider it done
+          summary.deleted += 1;
+          continue;
+        }
+        const deleted = await deleteEntry(token, entryId);
+        if (deleted) {
+          summary.deleted += 1;
+        } else {
+          remainingDeletions.push(mediaId);
+          recordError(`Failed to delete AniList entry ${entryId} (media ${mediaId})`);
+        }
+      } catch (e) {
+        remainingDeletions.push(mediaId);
+        recordError(e instanceof Error ? e.message : `Failed to delete AniList entry for media ${mediaId}`);
+      }
+    }
+    writePendingDeletions(remainingDeletions);
+
+    // Build a set of local item IDs for quick lookup
+    const localItemIds = new Set(localEntries.map((e) => e.item.id));
 
     for (const entry of localEntries) {
       const item = entry.item;

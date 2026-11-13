@@ -21,6 +21,7 @@ import { HistoryPage } from "@/routes/history";
 import { getSelectedProfile } from "@/lib/selected-profile";
 import { navigate as navigateTo, subscribeToNavigation } from "@/lib/navigation";
 import { ReduceMotionProvider } from "@/lib/reduce-motion";
+import { startPeriodicSync, stopPeriodicSync } from "@/lib/periodic-sync";
 
 // One client for the lifetime of the app. Creating it inside the component body
 // would discard the query cache on every render of <App />.
@@ -63,6 +64,16 @@ function AppInner() {
     const sync = () => setLocationKey(window.location.pathname + window.location.search);
     return subscribeToNavigation(sync);
   }, []);
+
+  // Start/stop periodic sync based on auth state and profile selection
+  useEffect(() => {
+    if (user && getSelectedProfile()) {
+      startPeriodicSync();
+    } else {
+      stopPeriodicSync();
+    }
+    return () => stopPeriodicSync();
+  }, [user, getSelectedProfile()]);
 
   // Every hook used by this component is declared above this point. Hooks must
   // never be called after a conditional return: the auth state flips from
