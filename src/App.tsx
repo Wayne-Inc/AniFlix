@@ -86,7 +86,7 @@ function AppInner() {
       <div className="min-h-screen flex flex-col bg-[#111115] text-[#e5e5e5] font-sans antialiased pt-20">
         <Navbar user={null} loading={true} signInWithGoogle={signInWithGoogle} signInWithGitHub={signInWithGitHub} signOut={signOut} navigate={navigateTo} pathname={window.location.pathname} />
         <LoadingBar />
-        <main className="flex-1 pb-20 md:pb-0" key={locationKey}>
+        <main className="flex-1 pb-28 md:pb-0" key={locationKey}>
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -140,7 +140,7 @@ function AppInner() {
       <Navbar user={user} loading={loading} signInWithGoogle={signInWithGoogle} signInWithGitHub={signInWithGitHub} signOut={signOut} navigate={navigateTo} pathname={pathname} />
       {/* key remounts the page component on any URL change, so navigating
           between two detail/watch routes refetches instead of reusing state. */}
-      <main className="flex-1 pb-20 md:pb-0" key={locationKey}>{getPage(pathname)}</main>
+      <main className="flex-1 pb-28 md:pb-0" key={locationKey}>{getPage(pathname)}</main>
       <Footer />
     </div>
   );
