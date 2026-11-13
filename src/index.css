@@ -34,6 +34,11 @@
   100% { transform: scaleX(1); }
 }
 
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .animate-skeleton-shimmer {
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
 }
@@ -44,6 +49,10 @@
 
 .animate-loading-bar {
   animation: loading-bar 1.2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.15s ease-out;
 }
 
 /* Custom scrollbars for StreamFlix aesthetic */

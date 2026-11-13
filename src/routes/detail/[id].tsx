@@ -235,33 +235,38 @@ export function DetailPage() {
                   </div>
                 )}
               </div>
-              <div className="bg-[#18181f] p-6 rounded-xl border border-zinc-800 space-y-6">
-                <div>
-                  <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Genres</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {item.genres.map((g) => (
-                      <span key={g} className="text-xs text-zinc-300 border border-zinc-700 px-2 py-1 rounded">
-                        {g}
-                      </span>
-                    ))}
+              {/* Sidebar - Fixed height, sticky */}
+              <div className="md:col-span-1">
+                <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+                  <div className="bg-[#18181f] p-6 rounded-xl border border-zinc-800 space-y-6">
+                    <div>
+                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Genres</span>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {item.genres.map((g) => (
+                          <span key={g} className="text-xs text-zinc-300 border border-zinc-700 px-2 py-1 rounded">
+                            {g}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Runtime</span>
+                      <p className="text-zinc-300 mt-1">{item.duration}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</span>
+                      <p className="text-zinc-300 mt-1">{item.status || "Unknown"}</p>
+                    </div>
+                    {item.trailerYoutubeKey && (
+                      <button
+                        onClick={() => setTrailerOpen(true)}
+                        className="w-full py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
+                      >
+                        Watch Trailer
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div>
-                  <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Runtime</span>
-                  <p className="text-zinc-300 mt-1">{item.duration}</p>
-                </div>
-                <div>
-                  <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</span>
-                  <p className="text-zinc-300 mt-1">{item.status || "Unknown"}</p>
-                </div>
-                {item.trailerYoutubeKey && (
-                  <button
-                    onClick={() => setTrailerOpen(true)}
-                    className="w-full py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors"
-                  >
-                    Watch Trailer
-                  </button>
-                )}
               </div>
             </div>
 

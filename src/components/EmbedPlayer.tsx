@@ -15,6 +15,11 @@ interface EmbedServer {
 }
 
 const availableEmbedServers: EmbedServer[] = [
+  { id: "nontongo", name: "NontonGo", isFrench: false, urls: { movie: "https://www.nontongo.win/embed/movie/{id}", tv: "https://www.nontongo.win/embed/tv/{id}/{season}/{episode}" } },
+  { id: "vidlink", name: "VidLink (Default)", isFrench: false, urls: { movie: "https://vidlink.pro/movie/{id}?player=default", tv: "https://vidlink.pro/tv/{id}/{season}/{episode}?player=default" } },
+  { id: "vidlinkjw", name: "VidLink (JW Player)", isFrench: false, urls: { movie: "https://vidlink.pro/movie/{id}?player=jw", tv: "https://vidlink.pro/tv/{id}/{season}/{episode}?player=jw" } },
+  { id: "vidfast", name: "VidFast", isFrench: false, urls: { movie: "https://vidfast.vc/movie/{id}?autoPlay=true", tv: "https://vidfast.vc/tv/{id}/{season}/{episode}?autoPlay=true" } },
+  { id: "vidspark", name: "VidSpark", isFrench: false, urls: { movie: "https://vidspark.to/movie/{id}", tv: "https://vidspark.to/tv/{id}/{season}/{episode}" } },
   { id: "vidrift", name: "Vidrift", isFrench: false, urls: { movie: "https://embed.vidrift.net/embed/movie/{id}?color=#DF2225", tv: "https://embed.vidrift.net/embed/tv/{id}/{season}/{episode}?color=#DF2225" } },
   { id: "vidy", name: "Vidy", isFrench: false, urls: { movie: "https://vidy.st/movie/{id}?color=DF2225", tv: "https://vidy.st/tv/{id}/{season}/{episode}?color=DF2225" } },
   { id: "vsembed", name: "VSEmbed", isFrench: false, urls: { movie: "https://vsembed.su/embed/movie/{id}", tv: "https://vsembed.su/embed/tv/{id}/{season}/{episode}" } },
@@ -22,9 +27,20 @@ const availableEmbedServers: EmbedServer[] = [
   { id: "multiembed", name: "MultiEmbed", isFrench: false, urls: { movie: "https://multiembed.mov/?video_id={id}&tmdb=1", tv: "https://multiembed.mov/?video_id={id}&tmdb=1&s={season}&e={episode}" } },
   { id: "videasy", name: "VidEasy", isFrench: false, urls: { movie: "https://videasy.xyz/embed/movie/{id}?theme=#DF2225", tv: "https://videasy.xyz/embed/tv/{id}/{season}/{episode}?theme=#DF2225" } },
   { id: "smashystream", name: "SmashyStream", isFrench: false, urls: { movie: "https://embed.smashystream.com/playere.php?tmdb={id}", tv: "https://embed.smashystream.com/playere.php?tmdb={id}&season={season}&episode={episode}" } },
+  { id: "vidsrcto", name: "VidSrc.to", isFrench: false, urls: { movie: "https://vidsrc.to/embed/movie/{id}", tv: "https://vidsrc.to/embed/tv/{id}/{season}/{episode}" } },
+  { id: "vidsrcsh", name: "VidSrc.sh", isFrench: false, urls: { movie: "https://vidsrc.sh/embed/movie/{id}", tv: "https://vidsrc.sh/embed/tv/{id}/{season}/{episode}" } },
   { id: "vidsrcsu", name: "VidSrc.su", isFrench: false, urls: { movie: "https://vidsrc.su/embed/movie/{id}", tv: "https://vidsrc.su/embed/tv/{id}/{season}/{episode}" } },
+  { id: "vidsrcmov", name: "VidSrc.mov", isFrench: false, urls: { movie: "https://vidsrc.mov/embed/movie/{id}", tv: "https://vidsrc.mov/embed/tv/{id}/{season}/{episode}" } },
   { id: "Atlantic", name: "Atlantic", isFrench: false, urls: { movie: "https://atlantic.st/embed/movie/{id}?color=#DF2225", tv: "https://atlantic.st/embed/tv/{id}/{season}/{episode}?color=#DF2225" } },
   { id: "Chillflix", name: "Chillflix", isFrench: false, urls: { movie: "https://www.chillflix.pw/embed/movie/{id}", tv: "https://www.chillflix.pw/embed/tv/{id}/{season}/{episode}" } },
+  { id: "Cinelite", name: "Cinelite", isFrench: false, urls: { movie: "https://embed.cinelite.xyz/movie/{id}?color=#DF2225", tv: "https://embed.cinelite.xyz/tv/{id}/{season}/{episode}?color=#DF2225" } },
+  { id: "Vidmario", name: "Vidmario", isFrench: false, urls: { movie: "https://player.vidmario.net/embed/movie/{id}?color=#DF2225", tv: "https://player.vidmario.net/embed/tv/{id}/{season}/{episode}?color=#DF2225" } },
+  { id: "Toflix", name: "Toflix", isFrench: false, urls: { movie: "https://toflix.co/embed/movie/{id}?color=DF2225", tv: "https://toflix.co/embed/tv/{id}/{season}/{episode}?color=DF2225" } },
+  { id: "Vidly", name: "Vidly", isFrench: false, urls: { movie: "https://vidly.pro/movie/{id}?color=DF2225", tv: "https://vidly.pro/tv/{id}/{season}/{episode}?color=DF2225" } },
+  { id: "VidBolt", name: "VidBolt", isFrench: false, urls: { movie: "https://vidbolt.xyz/movie/{id}?theme=DF2225", tv: "https://vidbolt.xyz/tv/{id}/{season}/{episode}?theme=DF2225" } },
+  { id: "Tgvid", name: "Tgvid", isFrench: false, urls: { movie: "https://tgvid.lovable.app/embed/movie/{id}?color=DF2225", tv: "https://tgvid.lovable.app/embed/tv/{id}/{season}/{episode}?color=DF2225" } },
+  { id: "Xpass", name: "Xpass", isFrench: false, urls: { movie: "https://play.xpass.top/e/movie/{id}", tv: "https://play.xpass.top/e/tv/{id}/{season}/{episode}" } },
+  { id: "RiveStream", name: "RiveStream", isFrench: false, urls: { movie: "https://www.rivestream.app/embed?type=movie&id={id}", tv: "https://www.rivestream.app/embed?type=tv&id={id}&season={season}&episode={episode}" } },
 ];
 
 const embedHostnames = new Set(

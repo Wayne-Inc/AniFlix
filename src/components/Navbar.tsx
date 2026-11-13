@@ -163,7 +163,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div
                 ref={menuRef}
                 onMouseLeave={handleMouseLeave}
-                className="absolute right-6 mt-20 w-64 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl py-5 px-4 z-50"
+                className="fixed right-4 top-18 z-50 w-64 bg-zinc-900 border border-zinc-800 rounded-lg shadow-2xl py-5 px-4 animate-fade-in"
               >
                 <div className="px-3 py-2 flex items-center gap-3 border-b border-zinc-800 mb-2">
                   <div className="w-8 h-8 rounded-full border border-zinc-700 overflow-hidden">
