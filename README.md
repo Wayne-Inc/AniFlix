@@ -30,30 +30,6 @@ StreamFlix-style anime and manga streaming platform. AniFlix queries [TMDB](http
 | Tracker sync | MyAnimeList API + AniList GraphQL |
 | Deployment | Vercel |
 
-## Project structure
-
-```
-AniFlix/
-├── api/                 # Vercel serverless functions (MAL proxy, auth callbacks, etc.)
-├── docs/                # Operational docs (media-ids, MAL OAuth, AniList OAuth)
-├── Icons/               # App icons and favicon
-├── public/              # Static assets (anime-map.json crosswalk, etc.)
-├── scripts/             # Build scripts (anime-map generator)
-├── src/
-│   ├── components/      # UI components (HeroBanner, AnimeRow, AnimeCard, Navbar, …)
-│   ├── context/         # AuthContext (Firebase auth + profiles + StreamFlix handoff)
-│   ├── lib/             # Firebase, TMDB, sync, preferences, consent, device tracking…
-│   ├── routes/          # TanStack Router routes (home, anime, movie, watch, mylist, …)
-│   ├── services/        # TMDB service (search, details, fuzzy matching)
-│   └── types/           # TypeScript types (anime, profiles, watch progress)
-├── index.html
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-├── vercel.json
-└── .env.example         # Copy to .env.local and fill in your keys
-```
-
 ## Getting started
 
 ### Prerequisites
@@ -155,4 +131,4 @@ Please see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for our community standards.
 
 ## License
 
-This project is private / internal. See the repository for license details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
